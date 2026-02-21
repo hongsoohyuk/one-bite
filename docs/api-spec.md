@@ -35,6 +35,67 @@ Authorization: Bearer <jwt-token>
 }
 ```
 
+### POST /auth/naver
+네이버 소셜 로그인. 인가코드와 state를 보내면 JWT 반환.
+
+**Request:**
+```json
+{
+  "code": "네이버_인가코드",
+  "state": "csrf_state_value"
+}
+```
+
+**Response: 200**
+```json
+{
+  "token": "eyJhbGciOi...",
+  "userId": 1,
+  "nickname": "한입유저",
+  "isNewUser": true
+}
+```
+
+### POST /auth/google
+Google 소셜 로그인. 인가코드를 보내면 JWT 반환.
+
+**Request:**
+```json
+{
+  "code": "google_인가코드"
+}
+```
+
+**Response: 200**
+```json
+{
+  "token": "eyJhbGciOi...",
+  "userId": 1,
+  "nickname": "한입유저",
+  "isNewUser": true
+}
+```
+
+### POST /auth/apple
+Apple 소셜 로그인. 클라이언트에서 받은 Apple ID 토큰을 보내면 JWT 반환.
+
+**Request:**
+```json
+{
+  "idToken": "apple_id_token_jwt"
+}
+```
+
+**Response: 200**
+```json
+{
+  "token": "eyJhbGciOi...",
+  "userId": 1,
+  "nickname": "한입유저",
+  "isNewUser": true
+}
+```
+
 ---
 
 ## Split API (인증 필요)
