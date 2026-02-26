@@ -5,6 +5,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.onebite.app.auth.AuthManager
+import com.onebite.app.ui.screen.CreateSplitScreen
 import com.onebite.app.ui.screen.LoginScreen
 import com.onebite.app.ui.screen.MainScreen
 import com.onebite.app.ui.screen.SplitDetailScreen
@@ -13,6 +14,7 @@ object Routes {
     const val LOGIN = "login"
     const val MAIN = "main"
     const val SPLIT_DETAIL = "split/{splitId}"
+    const val CREATE_SPLIT = "create_split"
 
     fun splitDetail(splitId: Long) = "split/$splitId"
 }
@@ -43,6 +45,9 @@ fun AppNavigation() {
                 onSplitClick = { splitId ->
                     navController.navigate(Routes.splitDetail(splitId))
                 },
+                onCreateSplit = {
+                    navController.navigate(Routes.CREATE_SPLIT)
+                },
                 onLogout = {
                     navController.navigate(Routes.LOGIN) {
                         popUpTo(Routes.MAIN) { inclusive = true }
@@ -56,6 +61,13 @@ fun AppNavigation() {
             SplitDetailScreen(
                 splitId = splitId,
                 onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.CREATE_SPLIT) {
+            CreateSplitScreen(
+                onBack = { navController.popBackStack() },
+                onCreated = { navController.popBackStack() }
             )
         }
     }

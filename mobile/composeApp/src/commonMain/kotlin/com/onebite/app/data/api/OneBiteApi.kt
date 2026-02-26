@@ -132,11 +132,37 @@ object OneBiteApi {
         }.body()
     }
 
+    // 나눠사기 참여
+    // React: const { data } = await api.post(`/splits/${id}/join`)
+    suspend fun joinSplit(id: Long): SplitItem {
+        return client.post("/splits/$id/join").body()
+    }
+
+    // 나눠사기 취소 (등록자 본인)
+    // React: await api.delete(`/splits/${id}`)
+    suspend fun cancelSplit(id: Long) {
+        client.delete("/splits/$id")
+    }
+
     // ===== User API =====
+
+    // 현재 로그인된 유저 ID (로그인 시 저장)
+    private var currentUserId: Long? = null
+
+    fun setCurrentUser(userId: Long) {
+        currentUserId = userId
+    }
+
+    fun getCurrentUserId(): Long? = currentUserId
 
     // 내 프로필 조회
     // React: const { data } = await api.get('/users/me')
     suspend fun getMyProfile(): UserProfile {
         return client.get("/users/me").body()
+    }
+
+    fun logout() {
+        clearToken()
+        currentUserId = null
     }
 }

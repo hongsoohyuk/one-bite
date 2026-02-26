@@ -11,92 +11,105 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.onebite.app.data.api.OneBiteApi
 import com.onebite.app.data.model.SplitItem
+import com.onebite.app.ui.component.EmptyContent
+import com.onebite.app.ui.component.ErrorContent
+import com.onebite.app.ui.component.LoadingContent
+import com.onebite.app.ui.component.formatPrice
+import kotlinx.coroutines.launch
 
 // HomeTab.kt - 홈 탭 (나눠사기 목록)
 //
 // React 비교:
 //   function HomeTab({ onSplitClick }) {
-//     const [splits, setSplits] = useState([])
-//     useEffect(() => { fetchSplits().then(setSplits) }, [])
-//     return (
-//       <div>
-//         {splits.map(split => (
-//           <SplitCard key={split.id} split={split} onClick={() => onSplitClick(split.id)} />
-//         ))}
-//       </div>
-//     )
+//     const [state, setState] = useState({ loading: true })
+//     const fetchData = async () => { ... }
+//     useEffect(() => { fetchData() }, [])
+//     if (state.loading) return <Spinner />
+//     if (state.error) return <Error onRetry={fetchData} />
+//     return <SplitList splits={state.data} />
 //   }
+
+private sealed interface HomeUiState {
+    data object Loading : HomeUiState
+    data class Success(val splits: List<SplitItem>) : HomeUiState
+    data class Error(val message: String) : HomeUiState
+    data object Empty : HomeUiState
+}
 
 @Composable
 fun HomeTab(
     onSplitClick: (Long) -> Unit
 ) {
-    // 더미 데이터 (추후 API 연동 시 ViewModel에서 가져올 예정)
-    // React의 useState + 초기값 설정과 비슷
-    val dummySplits = remember {
-        listOf(
-            SplitItem(
-                id = 1,
-                productName = "두쫀쿠 4개입",
-                totalPrice = 20000,
-                splitCount = 2,
-                pricePerPerson = 10000,
-                address = "서울 강남구 역삼동",
-                status = "WAITING"
-            ),
-            SplitItem(
-                id = 2,
-                productName = "코스트코 크루아상 12개입",
-                totalPrice = 15900,
-                splitCount = 3,
-                pricePerPerson = 5300,
-                address = "서울 성동구 성수동",
-                status = "WAITING"
-            ),
-            SplitItem(
-                id = 3,
-                productName = "서울우유 1L 3개 묶음",
-                totalPrice = 8400,
-                splitCount = 3,
-                pricePerPerson = 2800,
-                address = "서울 마포구 합정동",
-                status = "MATCHED"
-            )
-        )
+    var uiState by remember { mutableStateOf<HomeUiState>(HomeUiState.Loading) }
+    val coroutineScope = rememberCoroutineScope()
+
+    // 데이터 로드 함수 (초기 로드 & 새로고침 모두 사용)
+    fun loadSplits() {
+        coroutineScope.launch {
+            uiState = HomeUiState.Loading
+            uiState = try {
+                val splits = OneBiteApi.getSplits()
+                if (splits.isEmpty()) HomeUiState.Empty
+                else HomeUiState.Success(splits)
+            } catch (e: Exception) {
+                HomeUiState.Error(e.message ?: "목록을 불러올 수 없습니다")
+            }
+        }
     }
 
-    // LazyColumn = React의 가상 스크롤 리스트 (react-window/react-virtualized)
-    // 화면에 보이는 항목만 렌더링해서 성능 최적화
-    // 일반 Column은 모든 항목을 한번에 렌더링 (React에서 map으로 전부 렌더링하는 것과 같음)
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)  // gap: 12px
-    ) {
-        // items() = React의 array.map()
-        // key = React의 key prop (리스트 렌더링 최적화)
-        items(dummySplits, key = { it.id }) { split ->
-            SplitCard(
-                split = split,
-                onClick = { onSplitClick(split.id) }
-            )
+    // 최초 로드 (React의 useEffect(() => { ... }, []))
+    LaunchedEffect(Unit) {
+        uiState = try {
+            val splits = OneBiteApi.getSplits()
+            if (splits.isEmpty()) HomeUiState.Empty
+            else HomeUiState.Success(splits)
+        } catch (e: Exception) {
+            HomeUiState.Error(e.message ?: "목록을 불러올 수 없습니다")
+        }
+    }
+
+    when (val state = uiState) {
+        is HomeUiState.Loading -> LoadingContent(message = "나눠사기 목록 불러오는 중...")
+
+        is HomeUiState.Error -> ErrorContent(
+            message = state.message,
+            onRetry = { loadSplits() }
+        )
+
+        is HomeUiState.Empty -> EmptyContent(
+            title = "아직 나눠사기가 없어요",
+            subtitle = "첫 번째 나눠사기를 등록해보세요!"
+        )
+
+        is HomeUiState.Success -> {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(state.splits, key = { it.id }) { split ->
+                    SplitCard(
+                        split = split,
+                        onClick = { onSplitClick(split.id) }
+                    )
+                }
+            }
         }
     }
 }
 
 // SplitCard - 나눠사기 아이템 카드 컴포넌트
-// React 비교: function SplitCard({ split, onClick }) { ... }
 @Composable
 private fun SplitCard(
     split: SplitItem,
     onClick: () -> Unit
 ) {
-    // Card = <div className="card"> (그림자, 모서리 둥글게 등 기본 스타일 포함)
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),  // onClick 이벤트 바인딩
+            .clickable(onClick = onClick),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
@@ -111,9 +124,10 @@ private fun SplitCard(
                 Text(
                     text = split.productName,
                     fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f)
                 )
-                // 상태 배지 (WAITING → 대기중, MATCHED → 매칭됨)
+                Spacer(modifier = Modifier.width(8.dp))
                 StatusBadge(status = split.status)
             }
 
@@ -126,7 +140,17 @@ private fun SplitCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // 등록 시간
+            split.createdAt?.let { createdAt ->
+                Text(
+                    text = createdAt,
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.outline
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            } ?: Spacer(modifier = Modifier.height(8.dp))
 
             // 가격 정보
             Row(
@@ -134,7 +158,7 @@ private fun SplitCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "1인당 ${split.pricePerPerson}원",
+                    text = "1인당 ${split.pricePerPerson.formatPrice()}",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary

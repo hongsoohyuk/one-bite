@@ -2,87 +2,132 @@ package com.onebite.app.ui.screen.tab
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.onebite.app.auth.AuthManager
-import com.onebite.app.getPlatformName
+import com.onebite.app.data.api.OneBiteApi
+import com.onebite.app.data.model.UserProfile
+import com.onebite.app.ui.component.ErrorContent
+import com.onebite.app.ui.component.LoadingContent
+import kotlinx.coroutines.launch
+
+private sealed interface ProfileUiState {
+    data object Loading : ProfileUiState
+    data class Success(val profile: UserProfile) : ProfileUiState
+    data class Error(val message: String) : ProfileUiState
+}
 
 @Composable
 fun ProfileTab(
-    onLogout: (() -> Unit)? = null
+    onLogout: () -> Unit = {}
 ) {
-    val nickname = AuthManager.getCurrentNickname() ?: "한입유저"
-    val isLoggedIn = AuthManager.isLoggedIn()
+    var uiState by remember { mutableStateOf<ProfileUiState>(ProfileUiState.Loading) }
+    val coroutineScope = rememberCoroutineScope()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Spacer(modifier = Modifier.height(32.dp))
-
-        Surface(
-            modifier = Modifier.size(80.dp),
-            shape = MaterialTheme.shapes.extraLarge,
-            color = MaterialTheme.colorScheme.primaryContainer
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Text(
-                    text = nickname.first().toString(),
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
+    fun loadProfile() {
+        coroutineScope.launch {
+            uiState = ProfileUiState.Loading
+            uiState = try {
+                ProfileUiState.Success(OneBiteApi.getMyProfile())
+            } catch (e: Exception) {
+                ProfileUiState.Error(e.message ?: "프로필을 불러올 수 없습니다")
             }
         }
+    }
 
-        Spacer(modifier = Modifier.height(16.dp))
+    LaunchedEffect(Unit) {
+        uiState = try {
+            ProfileUiState.Success(OneBiteApi.getMyProfile())
+        } catch (e: Exception) {
+            ProfileUiState.Error(e.message ?: "프로필을 불러올 수 없습니다")
+        }
+    }
 
-        Text(
-            text = nickname,
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold
+    when (val state = uiState) {
+        is ProfileUiState.Loading -> LoadingContent(message = "프로필 불러오는 중...")
+
+        is ProfileUiState.Error -> ErrorContent(
+            message = state.message,
+            onRetry = { loadProfile() }
         )
 
-        Spacer(modifier = Modifier.height(4.dp))
+        is ProfileUiState.Success -> {
+            val profile = state.profile
 
-        Text(
-            text = "플랫폼: ${getPlatformName()}",
-            fontSize = 14.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        HorizontalDivider()
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        ProfileMenuItem(title = "내 나눠사기", subtitle = "등록한 상품 목록")
-        ProfileMenuItem(title = "참여한 나눠사기", subtitle = "참여 요청한 상품 목록")
-        ProfileMenuItem(title = "설정", subtitle = "알림, 위치, 계정 관리")
-
-        if (isLoggedIn && onLogout != null) {
-            Spacer(modifier = Modifier.height(24.dp))
-            HorizontalDivider()
-            Spacer(modifier = Modifier.height(16.dp))
-
-            TextButton(
-                onClick = {
-                    AuthManager.logout()
-                    onLogout()
-                }
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                Spacer(modifier = Modifier.height(32.dp))
+
+                // 프로필 아바타
+                Surface(
+                    modifier = Modifier.size(80.dp),
+                    shape = MaterialTheme.shapes.extraLarge,
+                    color = MaterialTheme.colorScheme.primaryContainer
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            text = profile.nickname.firstOrNull()?.toString() ?: "?",
+                            fontSize = 32.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
                 Text(
-                    text = "로그아웃",
-                    color = MaterialTheme.colorScheme.error,
-                    fontSize = 15.sp
+                    text = profile.nickname,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
                 )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                profile.createdAt?.let { date ->
+                    Text(
+                        text = "가입일: $date",
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                HorizontalDivider()
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // 메뉴 항목들
+                ProfileMenuItem(title = "내 나눠사기", subtitle = "등록한 상품 목록")
+                ProfileMenuItem(title = "참여한 나눠사기", subtitle = "참여 요청한 상품 목록")
+                ProfileMenuItem(title = "설정", subtitle = "알림, 위치, 계정 관리")
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                // 로그아웃 버튼
+                OutlinedButton(
+                    onClick = {
+                        AuthManager.logout()
+                        onLogout()
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("로그아웃")
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
             }
         }
     }
