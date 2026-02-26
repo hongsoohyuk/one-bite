@@ -8,23 +8,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.onebite.app.auth.AuthManager
 import com.onebite.app.getPlatformName
 
-// ProfileTab.kt - 프로필 탭
-//
-// React 비교:
-//   function ProfileTab() {
-//     return (
-//       <div>
-//         <Avatar />
-//         <h2>한입유저</h2>
-//         <p>내 거래 내역...</p>
-//       </div>
-//     )
-//   }
-
 @Composable
-fun ProfileTab() {
+fun ProfileTab(
+    onLogout: (() -> Unit)? = null
+) {
+    val nickname = AuthManager.getCurrentNickname() ?: "한입유저"
+    val isLoggedIn = AuthManager.isLoggedIn()
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -33,7 +26,6 @@ fun ProfileTab() {
     ) {
         Spacer(modifier = Modifier.height(32.dp))
 
-        // 프로필 아바타 placeholder
         Surface(
             modifier = Modifier.size(80.dp),
             shape = MaterialTheme.shapes.extraLarge,
@@ -41,7 +33,7 @@ fun ProfileTab() {
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Text(
-                    text = "U",
+                    text = nickname.first().toString(),
                     fontSize = 32.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
@@ -52,14 +44,13 @@ fun ProfileTab() {
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "한입유저",
+            text = nickname,
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold
         )
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        // getPlatformName()은 expect/actual로 플랫폼별로 다른 값 반환
         Text(
             text = "플랫폼: ${getPlatformName()}",
             fontSize = 14.sp,
@@ -72,10 +63,28 @@ fun ProfileTab() {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 메뉴 항목들
         ProfileMenuItem(title = "내 나눠사기", subtitle = "등록한 상품 목록")
         ProfileMenuItem(title = "참여한 나눠사기", subtitle = "참여 요청한 상품 목록")
         ProfileMenuItem(title = "설정", subtitle = "알림, 위치, 계정 관리")
+
+        if (isLoggedIn && onLogout != null) {
+            Spacer(modifier = Modifier.height(24.dp))
+            HorizontalDivider()
+            Spacer(modifier = Modifier.height(16.dp))
+
+            TextButton(
+                onClick = {
+                    AuthManager.logout()
+                    onLogout()
+                }
+            ) {
+                Text(
+                    text = "로그아웃",
+                    color = MaterialTheme.colorScheme.error,
+                    fontSize = 15.sp
+                )
+            }
+        }
     }
 }
 
