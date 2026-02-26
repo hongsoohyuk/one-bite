@@ -24,7 +24,21 @@ data class CreateSplitDto(
     val address: String
 )
 
-// ── Response DTO: 클라이언트에 보내는 데이터 ──
+// ── Response DTOs ──
+
+data class AuthorDto(
+    val id: Long,
+    val nickname: String,
+    val profileImageUrl: String?
+)
+
+data class ParticipantDto(
+    val userId: Long,
+    val nickname: String,
+    val profileImageUrl: String?,
+    val joinedAt: String
+)
+
 data class SplitResponse(
     val id: Long,
     val productName: String,
@@ -38,10 +52,16 @@ data class SplitResponse(
     val longitude: Double,
     val address: String,
     val status: SplitStatus,
-    val createdAt: String
+    val createdAt: String,
+    val author: AuthorDto,
+    val participants: List<ParticipantDto>,
+    val currentParticipants: Int
 ) {
     companion object {
-        fun from(entity: SplitRequest) = SplitResponse(
+        fun from(
+            entity: SplitRequest,
+            participants: List<SplitParticipant> = emptyList()
+        ) = SplitResponse(
             id = entity.id,
             productName = entity.productName,
             totalPrice = entity.totalPrice,
@@ -54,7 +74,21 @@ data class SplitResponse(
             longitude = entity.longitude,
             address = entity.address,
             status = entity.status,
-            createdAt = entity.createdAt.toString()
+            createdAt = entity.createdAt.toString(),
+            author = AuthorDto(
+                id = entity.user.id,
+                nickname = entity.user.nickname,
+                profileImageUrl = entity.user.profileImageUrl
+            ),
+            participants = participants.map {
+                ParticipantDto(
+                    userId = it.user.id,
+                    nickname = it.user.nickname,
+                    profileImageUrl = it.user.profileImageUrl,
+                    joinedAt = it.joinedAt.toString()
+                )
+            },
+            currentParticipants = participants.size + 1 // 참여자 + 작성자
         )
     }
 }

@@ -1,5 +1,6 @@
 package com.onebite.server.split
 
+import com.onebite.server.user.User
 import jakarta.persistence.*
 import java.time.LocalDateTime
 
@@ -9,6 +10,10 @@ import java.time.LocalDateTime
 class SplitRequest(
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    val user: User,
 
     val productName: String,
     val totalPrice: Int,
