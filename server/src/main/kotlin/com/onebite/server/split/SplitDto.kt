@@ -38,10 +38,11 @@ data class SplitResponse(
     val longitude: Double,
     val address: String,
     val status: SplitStatus,
-    val createdAt: String
+    val createdAt: String,
+    val distanceKm: Double? = null
 ) {
     companion object {
-        fun from(entity: SplitRequest) = SplitResponse(
+        fun from(entity: SplitRequest, distanceKm: Double? = null) = SplitResponse(
             id = entity.id,
             productName = entity.productName,
             totalPrice = entity.totalPrice,
@@ -54,7 +55,8 @@ data class SplitResponse(
             longitude = entity.longitude,
             address = entity.address,
             status = entity.status,
-            createdAt = entity.createdAt.toString()
+            createdAt = entity.createdAt.toString(),
+            distanceKm = distanceKm?.let { Math.round(it * 100) / 100.0 }
         )
     }
 }
