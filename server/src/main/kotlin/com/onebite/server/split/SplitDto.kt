@@ -1,5 +1,6 @@
 package com.onebite.server.split
 
+import com.onebite.server.user.User
 import jakarta.validation.constraints.Min
 import jakarta.validation.constraints.NotBlank
 
@@ -24,6 +25,21 @@ data class CreateSplitDto(
     val address: String
 )
 
+// ── Author DTO: 작성자 정보 ──
+data class AuthorDto(
+    val id: Long,
+    val nickname: String,
+    val profileImageUrl: String?
+) {
+    companion object {
+        fun from(user: User) = AuthorDto(
+            id = user.id,
+            nickname = user.nickname,
+            profileImageUrl = user.profileImageUrl
+        )
+    }
+}
+
 // ── Response DTO: 클라이언트에 보내는 데이터 ──
 data class SplitResponse(
     val id: Long,
@@ -38,6 +54,7 @@ data class SplitResponse(
     val longitude: Double,
     val address: String,
     val status: SplitStatus,
+    val author: AuthorDto,
     val createdAt: String
 ) {
     companion object {
@@ -54,6 +71,7 @@ data class SplitResponse(
             longitude = entity.longitude,
             address = entity.address,
             status = entity.status,
+            author = AuthorDto.from(entity.author),
             createdAt = entity.createdAt.toString()
         )
     }

@@ -1,12 +1,17 @@
 package com.onebite.server.split
 
+import com.onebite.server.user.UserRepository
 import org.springframework.stereotype.Service
 
 @Service
 class SplitService(
-    private val splitRepository: SplitRepository
+    private val splitRepository: SplitRepository,
+    private val userRepository: UserRepository
 ) {
-    fun create(dto: CreateSplitDto): SplitResponse {
+    fun create(dto: CreateSplitDto, userId: Long): SplitResponse {
+        val author = userRepository.findById(userId)
+            .orElseThrow { NoSuchElementException("User not found: $userId") }
+
         val entity = SplitRequest(
             productName = dto.productName,
             totalPrice = dto.totalPrice,
@@ -15,7 +20,8 @@ class SplitService(
             imageUrl = dto.imageUrl,
             latitude = dto.latitude,
             longitude = dto.longitude,
-            address = dto.address
+            address = dto.address,
+            author = author
         )
         return SplitResponse.from(splitRepository.save(entity))
     }
@@ -30,6 +36,9 @@ class SplitService(
 
     fun findByStatus(status: SplitStatus): List<SplitResponse> =
         splitRepository.findByStatus(status).map { SplitResponse.from(it) }
+
+    fun findByAuthorId(userId: Long): List<SplitResponse> =
+        splitRepository.findByAuthorId(userId).map { SplitResponse.from(it) }
 
     fun cancel(id: Long): SplitResponse {
         val entity = splitRepository.findById(id)

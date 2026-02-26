@@ -2,6 +2,7 @@ package com.onebite.server.split
 
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.*
 
 // Next.js 대응: app/api/splits/route.ts
@@ -24,8 +25,16 @@ class SplitController(
     // POST /api/splits
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    fun create(@Valid @RequestBody dto: CreateSplitDto): SplitResponse =
-        splitService.create(dto)
+    fun create(
+        @AuthenticationPrincipal userId: Long,
+        @Valid @RequestBody dto: CreateSplitDto
+    ): SplitResponse =
+        splitService.create(dto, userId)
+
+    // GET /api/splits/my
+    @GetMapping("/my")
+    fun getMy(@AuthenticationPrincipal userId: Long): List<SplitResponse> =
+        splitService.findByAuthorId(userId)
 
     // PATCH /api/splits/{id}/cancel
     @PatchMapping("/{id}/cancel")

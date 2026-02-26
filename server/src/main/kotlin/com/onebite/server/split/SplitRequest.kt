@@ -1,5 +1,6 @@
 package com.onebite.server.split
 
+import com.onebite.server.user.User
 import jakarta.persistence.*
 import java.time.LocalDateTime
 
@@ -20,6 +21,11 @@ class SplitRequest(
     val latitude: Double,
     val longitude: Double,
     val address: String,
+
+    // 작성자
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "author_id", nullable = false)
+    val author: User,
 
     @Enumerated(EnumType.STRING)
     var status: SplitStatus = SplitStatus.WAITING,
