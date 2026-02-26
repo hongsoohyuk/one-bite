@@ -11,11 +11,20 @@ import org.springframework.web.bind.annotation.*
 class SplitController(
     private val splitService: SplitService
 ) {
-    // GET /api/splits
+    // GET /api/splits?lat=37.5&lng=126.9&radiusKm=3&status=WAITING
     @GetMapping
-    fun getAll(@RequestParam status: SplitStatus? = null): List<SplitResponse> =
-        if (status != null) splitService.findByStatus(status)
-        else splitService.findAll()
+    fun getAll(
+        @RequestParam status: SplitStatus? = null,
+        @RequestParam lat: Double? = null,
+        @RequestParam lng: Double? = null,
+        @RequestParam radiusKm: Double? = null
+    ): List<SplitResponse> =
+        if (lat != null && lng != null)
+            splitService.findNearby(lat, lng, radiusKm ?: 3.0)
+        else if (status != null)
+            splitService.findByStatus(status)
+        else
+            splitService.findAll()
 
     // GET /api/splits/{id}
     @GetMapping("/{id}")
