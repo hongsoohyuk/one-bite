@@ -5,7 +5,6 @@ import jakarta.validation.constraints.Min
 import jakarta.validation.constraints.NotBlank
 
 // ── Request DTO: 클라이언트가 보내는 데이터 ──
-// Next.js에서 req.body를 타입으로 정의하는 것과 같음
 data class CreateSplitDto(
     @field:NotBlank
     val productName: String,
@@ -40,6 +39,14 @@ data class AuthorDto(
     }
 }
 
+// ── Participant DTO: 참여자 정보 ──
+data class ParticipantDto(
+    val userId: Long,
+    val nickname: String,
+    val profileImageUrl: String?,
+    val joinedAt: String
+)
+
 // ── Response DTO: 클라이언트에 보내는 데이터 ──
 data class SplitResponse(
     val id: Long,
@@ -56,10 +63,16 @@ data class SplitResponse(
     val status: SplitStatus,
     val author: AuthorDto,
     val createdAt: String,
+    val participants: List<ParticipantDto> = emptyList(),
+    val currentParticipants: Int = 1,
     val distanceKm: Double? = null
 ) {
     companion object {
-        fun from(entity: SplitRequest, distanceKm: Double? = null) = SplitResponse(
+        fun from(
+            entity: SplitRequest,
+            participants: List<SplitParticipant> = emptyList(),
+            distanceKm: Double? = null
+        ) = SplitResponse(
             id = entity.id,
             productName = entity.productName,
             totalPrice = entity.totalPrice,
@@ -74,6 +87,15 @@ data class SplitResponse(
             status = entity.status,
             author = AuthorDto.from(entity.author),
             createdAt = entity.createdAt.toString(),
+            participants = participants.map {
+                ParticipantDto(
+                    userId = it.user.id,
+                    nickname = it.user.nickname,
+                    profileImageUrl = it.user.profileImageUrl,
+                    joinedAt = it.joinedAt.toString()
+                )
+            },
+            currentParticipants = participants.size + 1,
             distanceKm = distanceKm?.let { Math.round(it * 100) / 100.0 }
         )
     }

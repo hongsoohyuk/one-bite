@@ -11,6 +11,10 @@ class SplitRequest(
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "author_id", nullable = false)
+    val author: User,
+
     val productName: String,
     val totalPrice: Int,
     val totalQty: Int,
@@ -21,11 +25,6 @@ class SplitRequest(
     val latitude: Double,
     val longitude: Double,
     val address: String,
-
-    // 작성자
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "author_id", nullable = false)
-    val author: User,
 
     @Enumerated(EnumType.STRING)
     var status: SplitStatus = SplitStatus.WAITING,
