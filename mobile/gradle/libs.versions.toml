@@ -1,6 +1,3 @@
-# Version Catalog - 모든 의존성 버전을 한곳에서 관리
-# React의 package.json처럼, 라이브러리 버전을 중앙 집중 관리하는 파일
-
 [versions]
 kotlin = "2.1.10"
 compose-multiplatform = "1.7.3"
@@ -14,8 +11,15 @@ android-compileSdk = "34"
 android-minSdk = "24"
 android-targetSdk = "34"
 
+# OAuth SDK versions
+kakao-sdk = "2.20.6"
+naver-sdk = "5.10.0"
+credentials = "1.3.0"
+googleid = "1.1.1"
+security-crypto = "1.1.0-alpha06"
+
 [libraries]
-# Ktor - HTTP 클라이언트 (React의 axios/fetch 역할)
+# Ktor
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
 ktor-client-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "ktor" }
@@ -28,12 +32,26 @@ ktor-client-auth = { module = "io.ktor:ktor-client-auth", version.ref = "ktor" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
 
-# Navigation - React Router 같은 화면 이동 라이브러리
+# Navigation
 navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "navigation" }
 
-# Lifecycle - 앱 생명주기 관리
+# Lifecycle
 lifecycle-viewmodel-compose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
 lifecycle-runtime-compose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }
+
+# OAuth - Kakao
+kakao-user = { module = "com.kakao.sdk:v2-user", version.ref = "kakao-sdk" }
+
+# OAuth - Naver
+naver-oauth = { module = "com.navercorp.nid:oauth", version.ref = "naver-sdk" }
+
+# OAuth - Google (Credential Manager)
+credentials = { module = "androidx.credentials:credentials", version.ref = "credentials" }
+credentials-play-services = { module = "androidx.credentials:credentials-play-services-auth", version.ref = "credentials" }
+googleid = { module = "com.google.android.libraries.identity.googleid:googleid", version.ref = "googleid" }
+
+# Security - EncryptedSharedPreferences
+security-crypto = { module = "androidx.security:security-crypto", version.ref = "security-crypto" }
 
 [plugins]
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }

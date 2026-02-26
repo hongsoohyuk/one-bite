@@ -2,43 +2,34 @@ package com.onebite.app.ui.screen
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
-// LoginScreen.kt - 로그인 화면
-//
-// React 비교:
-//   function LoginPage({ onLoginSuccess }: { onLoginSuccess: () => void }) {
-//     return (
-//       <div className="login-page">
-//         <h1>한입</h1>
-//         <p>설명...</p>
-//         <button onClick={onLoginSuccess}>카카오로 시작하기</button>
-//       </div>
-//     )
-//   }
-//
-// Compose에서 함수 파라미터 = React의 props
-// onLoginSuccess: () -> Unit = onLoginSuccess: () => void
+import com.onebite.app.auth.AuthManager
+import com.onebite.app.auth.AuthProvider
+import com.onebite.app.auth.OAuthHandler
+import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(
-    onLoginSuccess: () -> Unit  // 콜백 prop (로그인 성공 시 호출)
+    onLoginSuccess: () -> Unit
 ) {
-    // Column = <div style={{ display: 'flex', flexDirection: 'column' }}>
+    val scope = rememberCoroutineScope()
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
     Column(
         modifier = Modifier
-            .fillMaxSize()         // width: 100%, height: 100%
-            .padding(32.dp),       // padding: 32px
-        horizontalAlignment = Alignment.CenterHorizontally,  // alignItems: center
-        verticalArrangement = Arrangement.Center               // justifyContent: center
+            .fillMaxSize()
+            .padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        // Text = <span> 또는 <p> 태그
         Text(
             text = "한입",
             fontSize = 48.sp,
@@ -46,7 +37,7 @@ fun LoginScreen(
             color = MaterialTheme.colorScheme.primary
         )
 
-        Spacer(modifier = Modifier.height(8.dp))  // <div style={{ height: 8 }} />
+        Spacer(modifier = Modifier.height(8.dp))
 
         Text(
             text = "벌크 상품, 같이 나눠요",
@@ -64,39 +55,152 @@ fun LoginScreen(
             color = MaterialTheme.colorScheme.onSurface
         )
 
-        Spacer(modifier = Modifier.height(64.dp))
+        Spacer(modifier = Modifier.height(48.dp))
 
-        // Button = <button> 태그
-        // onClick = onClick 이벤트 핸들러
-        Button(
-            onClick = {
-                // TODO: 실제 카카오 OAuth 연동
-                // 지금은 바로 로그인 성공 처리 (개발용)
-                onLoginSuccess()
-            },
-            modifier = Modifier
-                .fillMaxWidth()          // width: 100%
-                .height(52.dp),          // height: 52px
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary
-            ),
-            shape = MaterialTheme.shapes.medium
-        ) {
-            Text(
-                text = "카카오로 시작하기",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold
+        if (isLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(48.dp),
+                color = MaterialTheme.colorScheme.primary
             )
+            Spacer(modifier = Modifier.height(16.dp))
         }
+
+        errorMessage?.let { msg ->
+            Text(
+                text = msg,
+                color = MaterialTheme.colorScheme.error,
+                fontSize = 13.sp,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+
+        // 카카오 로그인
+        SocialLoginButton(
+            text = "카카오로 시작하기",
+            containerColor = Color(0xFFFEE500),
+            contentColor = Color(0xFF191919),
+            enabled = !isLoading && OAuthHandler.isAvailable(AuthProvider.KAKAO),
+            onClick = {
+                scope.launch {
+                    isLoading = true
+                    errorMessage = null
+                    val result = AuthManager.login(AuthProvider.KAKAO)
+                    isLoading = false
+                    result.fold(
+                        onSuccess = { onLoginSuccess() },
+                        onFailure = { errorMessage = it.message }
+                    )
+                }
+            }
+        )
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // 네이버 로그인
+        SocialLoginButton(
+            text = "네이버로 시작하기",
+            containerColor = Color(0xFF03C75A),
+            contentColor = Color.White,
+            enabled = !isLoading && OAuthHandler.isAvailable(AuthProvider.NAVER),
+            onClick = {
+                scope.launch {
+                    isLoading = true
+                    errorMessage = null
+                    val result = AuthManager.login(AuthProvider.NAVER)
+                    isLoading = false
+                    result.fold(
+                        onSuccess = { onLoginSuccess() },
+                        onFailure = { errorMessage = it.message }
+                    )
+                }
+            }
+        )
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // 구글 로그인
+        SocialLoginButton(
+            text = "Google로 시작하기",
+            containerColor = Color.White,
+            contentColor = Color(0xFF1F1F1F),
+            enabled = !isLoading && OAuthHandler.isAvailable(AuthProvider.GOOGLE),
+            onClick = {
+                scope.launch {
+                    isLoading = true
+                    errorMessage = null
+                    val result = AuthManager.login(AuthProvider.GOOGLE)
+                    isLoading = false
+                    result.fold(
+                        onSuccess = { onLoginSuccess() },
+                        onFailure = { errorMessage = it.message }
+                    )
+                }
+            }
+        )
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // Apple 로그인
+        SocialLoginButton(
+            text = "Apple로 시작하기",
+            containerColor = Color.Black,
+            contentColor = Color.White,
+            enabled = !isLoading && OAuthHandler.isAvailable(AuthProvider.APPLE),
+            onClick = {
+                scope.launch {
+                    isLoading = true
+                    errorMessage = null
+                    val result = AuthManager.login(AuthProvider.APPLE)
+                    isLoading = false
+                    result.fold(
+                        onSuccess = { onLoginSuccess() },
+                        onFailure = { errorMessage = it.message }
+                    )
+                }
+            }
+        )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // TextButton = 배경 없는 텍스트만 있는 버튼
-        TextButton(onClick = { onLoginSuccess() }) {
+        TextButton(
+            onClick = { onLoginSuccess() },
+            enabled = !isLoading
+        ) {
             Text(
                 text = "둘러보기",
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+    }
+}
+
+@Composable
+private fun SocialLoginButton(
+    text: String,
+    containerColor: Color,
+    contentColor: Color,
+    enabled: Boolean,
+    onClick: () -> Unit
+) {
+    Button(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(48.dp),
+        enabled = enabled,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = containerColor,
+            contentColor = contentColor,
+            disabledContainerColor = containerColor.copy(alpha = 0.4f),
+            disabledContentColor = contentColor.copy(alpha = 0.4f)
+        ),
+        shape = MaterialTheme.shapes.medium
+    ) {
+        Text(
+            text = text,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Bold
+        )
     }
 }

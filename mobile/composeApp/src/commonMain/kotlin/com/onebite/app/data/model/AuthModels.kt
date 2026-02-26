@@ -11,7 +11,23 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class KakaoLoginRequest(
-    val code: String  // 카카오 인가코드
+    val code: String
+)
+
+@Serializable
+data class NaverLoginRequest(
+    val code: String,
+    val state: String
+)
+
+@Serializable
+data class GoogleLoginRequest(
+    val code: String
+)
+
+@Serializable
+data class AppleLoginRequest(
+    val idToken: String
 )
 
 @Serializable

@@ -1,11 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- AndroidManifest.xml - Android 앱의 설정 파일 -->
-<!-- React의 public/index.html + next.config.js 역할 (앱 메타데이터 정의) -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- 인터넷 접근 권한 (API 호출에 필요) -->
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- 위치 권한 (추후 위치 기반 기능에 사용) -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
@@ -15,7 +11,6 @@
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.Light.NoActionBar"
         android:usesCleartextTraffic="true">
-        <!-- usesCleartextTraffic: 개발 중 localhost HTTP 접근 허용 -->
 
         <activity
             android:name=".MainActivity"
@@ -26,5 +21,22 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- 카카오 로그인 리다이렉트 Activity -->
+        <activity
+            android:name="com.kakao.sdk.auth.AuthCodeHandlerActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <!-- kakao{NATIVE_APP_KEY} 형식 (Kakao Developers 콘솔에서 확인) -->
+                <data android:host="oauth"
+                    android:scheme="kakao{YOUR_KAKAO_NATIVE_APP_KEY}" />
+            </intent-filter>
+        </activity>
+
+        <!-- 네이버 로그인은 NaverIdLoginSDK 내부에서 처리 (별도 Activity 선언 불필요) -->
+
     </application>
 </manifest>

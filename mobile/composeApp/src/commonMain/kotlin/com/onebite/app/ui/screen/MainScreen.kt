@@ -40,7 +40,8 @@ data class TabItem(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
-    onSplitClick: (Long) -> Unit  // 상품 클릭 시 콜백
+    onSplitClick: (Long) -> Unit,
+    onLogout: (() -> Unit)? = null
 ) {
     // remember + mutableStateOf = React의 useState
     // var selectedTab by remember { mutableStateOf(0) }
@@ -103,7 +104,7 @@ fun MainScreen(
             when (selectedTab) {
                 0 -> HomeTab(onSplitClick = onSplitClick)
                 1 -> MapTab()
-                2 -> ProfileTab()
+                2 -> ProfileTab(onLogout = onLogout)
             }
         }
     }

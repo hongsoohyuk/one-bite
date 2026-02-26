@@ -76,11 +76,27 @@ object OneBiteApi {
 
     // ===== Auth API =====
 
-    // 카카오 로그인
-    // React: const response = await api.post('/auth/kakao', { code })
     suspend fun loginWithKakao(code: String): LoginResponse {
         return client.post("/auth/kakao") {
             setBody(KakaoLoginRequest(code = code))
+        }.body()
+    }
+
+    suspend fun loginWithNaver(code: String, state: String): LoginResponse {
+        return client.post("/auth/naver") {
+            setBody(NaverLoginRequest(code = code, state = state))
+        }.body()
+    }
+
+    suspend fun loginWithGoogle(code: String): LoginResponse {
+        return client.post("/auth/google") {
+            setBody(GoogleLoginRequest(code = code))
+        }.body()
+    }
+
+    suspend fun loginWithApple(idToken: String): LoginResponse {
+        return client.post("/auth/apple") {
+            setBody(AppleLoginRequest(idToken = idToken))
         }.body()
     }
 
