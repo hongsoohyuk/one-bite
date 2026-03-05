@@ -43,15 +43,19 @@ class AuthService(
 
     // 공통: 기존 유저 조회 or 신규 가입 → JWT 발급
     private fun loginOrRegister(provider: AuthProvider, userInfo: SocialUserInfo): AuthResponse {
+        var isNewUser = false
         val user = userRepository.findByProviderAndProviderId(provider, userInfo.id)
-            ?: userRepository.save(
-                User(
-                    provider = provider,
-                    providerId = userInfo.id,
-                    nickname = userInfo.nickname,
-                    profileImageUrl = userInfo.profileImageUrl
+            ?: run {
+                isNewUser = true
+                userRepository.save(
+                    User(
+                        provider = provider,
+                        providerId = userInfo.id,
+                        nickname = userInfo.nickname,
+                        profileImageUrl = userInfo.profileImageUrl
+                    )
                 )
-            )
+            }
 
         val token = jwtProvider.generateToken(user.id)
 
@@ -59,7 +63,7 @@ class AuthService(
             token = token,
             userId = user.id,
             nickname = user.nickname,
-            isNewUser = user.createdAt == user.createdAt // 첫 로그인 판별은 추후 개선
+            isNewUser = isNewUser
         )
     }
 }

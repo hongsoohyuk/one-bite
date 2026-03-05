@@ -72,7 +72,10 @@ one-bite/
 │       │   └── SplitDto.kt
 │       └── user/             # 유저
 │           ├── User.kt           # Entity
-│           └── UserRepository.kt
+│           ├── UserRepository.kt
+│           ├── UserController.kt
+│           ├── UserService.kt
+│           └── UserDto.kt
 ├── mobile/                   # KMP (미생성)
 ├── learn/                    # Kotlin 학습 자료
 └── infra/                    # 인프라 (미생성)
@@ -96,9 +99,10 @@ cd server
 ### MVP (Phase 1) - 핵심 루프 검증
 - [x] 상품(Split) CRUD API
 - [x] 카카오 소셜 로그인 + JWT 인증 구조
-- [ ] 유저-상품 연결 (누가 등록했는지)
-- [ ] 위치 기반 조회 (반경 N km)
-- [ ] 나눠사기 참여(join) API
+- [x] 유저-상품 연결 (누가 등록했는지)
+- [x] 위치 기반 조회 (반경 N km)
+- [x] 나눠사기 참여(join) API
+- [x] 유저 프로필 API (GET/PATCH /users/me)
 - [ ] 모바일 앱 (로그인, 지도, 등록, 상세)
 - [ ] 푸시 알림
 
