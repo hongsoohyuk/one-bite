@@ -5,16 +5,14 @@ import kotlinx.cinterop.alloc
 import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.ptr
 import kotlinx.cinterop.value
-import platform.CoreFoundation.CFAutorelease
-import platform.CoreFoundation.CFDictionaryAddValue
-import platform.CoreFoundation.CFDictionaryCreateMutable
-import platform.CoreFoundation.CFStringRef
-import platform.CoreFoundation.CFTypeRef
-import platform.CoreFoundation.kCFAllocatorDefault
-import platform.CoreFoundation.kCFBooleanTrue
+import kotlinx.cinterop.COpaquePointerVar
+import platform.CoreFoundation.CFDictionaryRef
 import platform.Foundation.CFBridgingRelease
 import platform.Foundation.CFBridgingRetain
 import platform.Foundation.NSData
+import platform.Foundation.NSDictionary
+import platform.Foundation.NSCopyingProtocol
+import platform.Foundation.NSMutableDictionary
 import platform.Foundation.NSString
 import platform.Foundation.NSUTF8StringEncoding
 import platform.Foundation.create
@@ -22,7 +20,6 @@ import platform.Foundation.dataUsingEncoding
 import platform.Security.SecItemAdd
 import platform.Security.SecItemCopyMatching
 import platform.Security.SecItemDelete
-import platform.Security.errSecItemNotFound
 import platform.Security.errSecSuccess
 import platform.Security.kSecAttrAccount
 import platform.Security.kSecAttrService
@@ -76,31 +73,32 @@ actual object TokenStorage {
         keychainDelete(key)
 
         val data = (value as NSString).dataUsingEncoding(NSUTF8StringEncoding) ?: return
-        val query = mapOf<Any?, Any?>(
-            kSecClass to kSecClassGenericPassword,
-            kSecAttrService to SERVICE_NAME,
-            kSecAttrAccount to key,
-            kSecValueData to data
-        )
+        val query = NSMutableDictionary().apply {
+            setObject(kSecClassGenericPassword!!, forKey = kSecClass as NSCopyingProtocol)
+            setObject(SERVICE_NAME, forKey = kSecAttrService as NSCopyingProtocol)
+            setObject(key, forKey = kSecAttrAccount as NSCopyingProtocol)
+            setObject(data, forKey = kSecValueData as NSCopyingProtocol)
+        }
 
-        @Suppress("UNCHECKED_CAST")
-        SecItemAdd(query as platform.CoreFoundation.CFDictionaryRef?, null)
+        SecItemAdd(CFBridgingRetain(query) as CFDictionaryRef?, null)
     }
 
     @OptIn(ExperimentalForeignApi::class)
     private fun keychainLoad(key: String): String? {
-        val query = mapOf<Any?, Any?>(
-            kSecClass to kSecClassGenericPassword,
-            kSecAttrService to SERVICE_NAME,
-            kSecAttrAccount to key,
-            kSecReturnData to kCFBooleanTrue,
-            kSecMatchLimit to kSecMatchLimitOne
-        )
+        val query = NSMutableDictionary().apply {
+            setObject(kSecClassGenericPassword!!, forKey = kSecClass as NSCopyingProtocol)
+            setObject(SERVICE_NAME, forKey = kSecAttrService as NSCopyingProtocol)
+            setObject(key, forKey = kSecAttrAccount as NSCopyingProtocol)
+            setObject(true as Any, forKey = kSecReturnData as NSCopyingProtocol)
+            setObject(kSecMatchLimitOne!!, forKey = kSecMatchLimit as NSCopyingProtocol)
+        }
 
         memScoped {
-            val result = alloc<CFTypeRef>()
-            @Suppress("UNCHECKED_CAST")
-            val status = SecItemCopyMatching(query as platform.CoreFoundation.CFDictionaryRef?, result.ptr)
+            val result = alloc<COpaquePointerVar>()
+            val status = SecItemCopyMatching(
+                CFBridgingRetain(query) as CFDictionaryRef?,
+                result.ptr
+            )
             if (status == errSecSuccess) {
                 val data = CFBridgingRelease(result.value) as? NSData ?: return null
                 return NSString.create(data = data, encoding = NSUTF8StringEncoding) as? String
@@ -111,13 +109,12 @@ actual object TokenStorage {
 
     @OptIn(ExperimentalForeignApi::class)
     private fun keychainDelete(key: String) {
-        val query = mapOf<Any?, Any?>(
-            kSecClass to kSecClassGenericPassword,
-            kSecAttrService to SERVICE_NAME,
-            kSecAttrAccount to key
-        )
+        val query = NSMutableDictionary().apply {
+            setObject(kSecClassGenericPassword!!, forKey = kSecClass as NSCopyingProtocol)
+            setObject(SERVICE_NAME, forKey = kSecAttrService as NSCopyingProtocol)
+            setObject(key, forKey = kSecAttrAccount as NSCopyingProtocol)
+        }
 
-        @Suppress("UNCHECKED_CAST")
-        SecItemDelete(query as platform.CoreFoundation.CFDictionaryRef?)
+        SecItemDelete(CFBridgingRetain(query) as CFDictionaryRef?)
     }
 }

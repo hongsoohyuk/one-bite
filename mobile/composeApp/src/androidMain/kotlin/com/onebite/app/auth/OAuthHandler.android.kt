@@ -4,7 +4,7 @@ import android.content.Context
 import androidx.activity.ComponentActivity
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
-import com.google.android.libraries.identity.googleid.GetGoogleIdTokenCredentialRequest
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.kakao.sdk.auth.model.OAuthToken
 import com.kakao.sdk.common.model.ClientError
@@ -119,7 +119,7 @@ actual object OAuthHandler {
         val activity = requireActivity()
         return try {
             val credentialManager = CredentialManager.create(activity)
-            val googleIdOption = GetGoogleIdTokenCredentialRequest.Builder()
+            val googleIdOption = GetGoogleIdOption.Builder()
                 .setFilterByAuthorizedAccounts(false)
                 .setServerClientId(googleClientId)
                 .build()
