@@ -30,9 +30,8 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <!-- kakao{NATIVE_APP_KEY} 형식 (Kakao Developers 콘솔에서 확인) -->
                 <data android:host="oauth"
-                    android:scheme="kakao{YOUR_KAKAO_NATIVE_APP_KEY}" />
+                    android:scheme="kakao${KAKAO_NATIVE_APP_KEY}" />
             </intent-filter>
         </activity>
 

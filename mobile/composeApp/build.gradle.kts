@@ -1,5 +1,6 @@
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -73,6 +74,15 @@ kotlin {
 
             // Token 영속 저장 - EncryptedSharedPreferences
             implementation(libs.security.crypto)
+
+            // Location - GPS
+            implementation(libs.play.services.location)
+
+            // Maps - Kakao Maps V2
+            implementation(libs.kakao.maps)
+
+            // Activity Compose - permission launcher
+            implementation(libs.activity.compose)
         }
 
         iosMain.dependencies {
@@ -80,6 +90,12 @@ kotlin {
             implementation(libs.ktor.client.darwin)
         }
     }
+}
+
+// local.properties에서 API 키 읽기
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) load(file.inputStream())
 }
 
 android {
@@ -92,6 +108,20 @@ android {
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
         versionName = "0.1.0"
+
+        // local.properties → BuildConfig
+        buildConfigField("String", "KAKAO_NATIVE_APP_KEY", "\"${localProperties["KAKAO_NATIVE_APP_KEY"] ?: ""}\"")
+        buildConfigField("String", "NAVER_CLIENT_ID", "\"${localProperties["NAVER_CLIENT_ID"] ?: ""}\"")
+        buildConfigField("String", "NAVER_CLIENT_SECRET", "\"${localProperties["NAVER_CLIENT_SECRET"] ?: ""}\"")
+        buildConfigField("String", "GOOGLE_CLIENT_ID_ANDROID", "\"${localProperties["GOOGLE_CLIENT_ID_ANDROID"] ?: ""}\"")
+        buildConfigField("String", "GOOGLE_CLIENT_ID_IOS", "\"${localProperties["GOOGLE_CLIENT_ID_IOS"] ?: ""}\"")
+
+        // 카카오 로그인 redirect scheme
+        manifestPlaceholders["KAKAO_NATIVE_APP_KEY"] = localProperties["KAKAO_NATIVE_APP_KEY"] ?: ""
+    }
+
+    buildFeatures {
+        buildConfig = true
     }
 
     compileOptions {

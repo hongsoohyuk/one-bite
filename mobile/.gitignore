@@ -10,3 +10,5 @@ captures
 *.xcuserdata
 *.xcworkspace
 Pods/
+# iOS API 키 (Secrets.kt.example을 복사하여 사용)
+**/Secrets.kt

@@ -1,121 +1,132 @@
 package com.onebite.app.auth
 
-import kotlinx.cinterop.ExperimentalForeignApi
-import platform.AuthenticationServices.ASAuthorization
-import platform.AuthenticationServices.ASAuthorizationAppleIDCredential
-import platform.AuthenticationServices.ASAuthorizationAppleIDProvider
-import platform.AuthenticationServices.ASAuthorizationController
-import platform.AuthenticationServices.ASAuthorizationControllerDelegateProtocol
-import platform.AuthenticationServices.ASAuthorizationControllerPresentationContextProvidingProtocol
-import platform.AuthenticationServices.ASAuthorizationScopeEmail
-import platform.AuthenticationServices.ASAuthorizationScopeFullName
-import platform.Foundation.NSError
-import platform.Foundation.NSString
-import platform.Foundation.NSUTF8StringEncoding
-import platform.Foundation.create
+import kotlinx.coroutines.suspendCancellableCoroutine
+import platform.AuthenticationServices.ASWebAuthenticationPresentationContextProvidingProtocol
+import platform.AuthenticationServices.ASWebAuthenticationSession
+import platform.Foundation.NSURL
+import platform.Foundation.NSURLComponents
+import platform.Foundation.NSURLQueryItem
+import platform.Foundation.NSUUID
 import platform.UIKit.UIApplication
 import platform.UIKit.UIWindow
 import platform.UIKit.UIWindowScene
 import platform.darwin.NSObject
-import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 
 actual object OAuthHandler {
 
+    // OAuth 설정 — Secrets.kt에서 키 로드 (gitignore 대상)
+    private val kakaoRestApiKey get() = com.onebite.app.Secrets.KAKAO_REST_API_KEY
+    private val naverClientId get() = com.onebite.app.Secrets.NAVER_CLIENT_ID
+    private val googleClientId get() = com.onebite.app.Secrets.GOOGLE_CLIENT_ID
+
+    private const val CALLBACK_SCHEME = "com.onebite.app"
+    // 카카오 콘솔에는 https://onebite.app/oauth/kakao 등록
+    // ASWebAuthenticationSession은 callbackURLScheme으로 앱 복귀를 처리
+    private const val KAKAO_REDIRECT_URI = "https://onebite.app/oauth/kakao"
+    private const val NAVER_REDIRECT_URI = "https://onebite.app/oauth/naver"
+    private const val GOOGLE_REDIRECT_URI = "https://onebite.app/oauth/google"
+
     actual suspend fun login(provider: AuthProvider): OAuthResult {
         return when (provider) {
-            AuthProvider.KAKAO -> loginWithKakaoIOS()
-            AuthProvider.NAVER -> loginWithNaverIOS()
-            AuthProvider.GOOGLE -> loginWithGoogleIOS()
-            AuthProvider.APPLE -> loginWithApple()
+            AuthProvider.KAKAO -> loginWithKakao()
+            AuthProvider.NAVER -> loginWithNaver()
+            AuthProvider.GOOGLE -> loginWithGoogle()
+            AuthProvider.APPLE -> OAuthResult.Error("Apple 로그인은 비활성화되어 있습니다")
         }
     }
 
-    private suspend fun loginWithApple(): OAuthResult = suspendCancellableCoroutine { cont ->
-        val appleIDProvider = ASAuthorizationAppleIDProvider()
-        val request = appleIDProvider.createRequest()
-        request.requestedScopes = listOf(ASAuthorizationScopeFullName, ASAuthorizationScopeEmail)
+    private suspend fun loginWithKakao(): OAuthResult {
+        val url = "https://kauth.kakao.com/oauth/authorize" +
+                "?client_id=$kakaoRestApiKey" +
+                "&redirect_uri=$KAKAO_REDIRECT_URI" +
+                "&response_type=code"
+        return webOAuth(url, AuthProvider.KAKAO)
+    }
 
-        val delegate = object : NSObject(),
-            ASAuthorizationControllerDelegateProtocol,
-            ASAuthorizationControllerPresentationContextProvidingProtocol {
+    private suspend fun loginWithNaver(): OAuthResult {
+        val state = NSUUID().UUIDString
+        val url = "https://nid.naver.com/oauth2.0/authorize" +
+                "?client_id=$naverClientId" +
+                "&redirect_uri=$NAVER_REDIRECT_URI" +
+                "&response_type=code" +
+                "&state=$state"
+        return webOAuth(url, AuthProvider.NAVER, state)
+    }
 
-            override fun authorizationController(
-                controller: ASAuthorizationController,
-                didCompleteWithAuthorization: ASAuthorization
-            ) {
-                val credential = didCompleteWithAuthorization.credential
-                if (credential is ASAuthorizationAppleIDCredential) {
-                    val tokenData = credential.identityToken
-                    if (tokenData != null) {
-                        val idToken = NSString.create(
-                            data = tokenData,
-                            encoding = NSUTF8StringEncoding
-                        ) as? String
-                        if (idToken != null) {
-                            cont.resume(
-                                OAuthResult.Success(
-                                    provider = AuthProvider.APPLE,
-                                    idToken = idToken
-                                )
-                            )
-                            return
-                        }
-                    }
-                    cont.resume(OAuthResult.Error("Apple ID 토큰을 가져올 수 없습니다"))
-                } else {
-                    cont.resume(OAuthResult.Error("Apple 인증 실패: 잘못된 credential 타입"))
-                }
-            }
+    private suspend fun loginWithGoogle(): OAuthResult {
+        val url = "https://accounts.google.com/o/oauth2/v2/auth" +
+                "?client_id=$googleClientId" +
+                "&redirect_uri=$GOOGLE_REDIRECT_URI" +
+                "&response_type=code" +
+                "&scope=openid%20email%20profile"
+        return webOAuth(url, AuthProvider.GOOGLE)
+    }
 
-            override fun authorizationController(
-                controller: ASAuthorizationController,
-                didCompleteWithError: NSError
-            ) {
-                cont.resume(OAuthResult.Error("Apple 로그인 실패: ${didCompleteWithError.localizedDescription}"))
-            }
+    private suspend fun webOAuth(
+        urlString: String,
+        provider: AuthProvider,
+        state: String? = null
+    ): OAuthResult = suspendCancellableCoroutine { cont ->
+        val url = NSURL.URLWithString(urlString)
+        if (url == null) {
+            cont.resume(OAuthResult.Error("잘못된 OAuth URL"))
+            return@suspendCancellableCoroutine
+        }
 
-            @OptIn(ExperimentalForeignApi::class)
-            override fun presentationAnchorForAuthorizationController(
-                controller: ASAuthorizationController
-            ): platform.UIKit.UIWindow {
+        val contextProvider = object : NSObject(),
+            ASWebAuthenticationPresentationContextProvidingProtocol {
+            override fun presentationAnchorForWebAuthenticationSession(
+                session: ASWebAuthenticationSession
+            ): UIWindow {
                 return getKeyWindow()!!
             }
         }
 
-        val authController = ASAuthorizationController(authorizationRequests = listOf(request))
-        authController.delegate = delegate
-        authController.presentationContextProvider = delegate
-        authController.performRequests()
-    }
+        val session = ASWebAuthenticationSession(
+            uRL = url,
+            callbackURLScheme = CALLBACK_SCHEME
+        ) { callbackURL: NSURL?, error: platform.Foundation.NSError? ->
+            if (error != null) {
+                cont.resume(OAuthResult.Error("${provider.name} 로그인 취소됨"))
+                return@ASWebAuthenticationSession
+            }
+            val components = callbackURL?.let {
+                NSURLComponents(uRL = it, resolvingAgainstBaseURL = false)
+            }
+            val code = components?.queryItems
+                ?.filterIsInstance<NSURLQueryItem>()
+                ?.firstOrNull { it.name == "code" }
+                ?.value
 
-    // 카카오 iOS SDK 연동 - KakaoSDK CocoaPods/SPM 추가 후 활성화
-    private suspend fun loginWithKakaoIOS(): OAuthResult {
-        // KakaoSDK는 CocoaPods/SPM으로 추가 후 cinterop으로 호출
-        // 예: KakaoSDKUser.UserApi.shared.loginWithKakaoTalk { oauthToken, error -> }
-        return OAuthResult.Error("카카오 iOS SDK 연동 필요 (CocoaPods/SPM 설정 후 사용 가능)")
-    }
+            if (code != null) {
+                cont.resume(
+                    OAuthResult.Success(
+                        provider = provider,
+                        authCode = code,
+                        state = state
+                    )
+                )
+            } else {
+                cont.resume(OAuthResult.Error("인증 코드를 받지 못했습니다"))
+            }
+        }
 
-    // 네이버 iOS SDK 연동 - NaverThirdPartyLogin CocoaPods/SPM 추가 후 활성화
-    private suspend fun loginWithNaverIOS(): OAuthResult {
-        return OAuthResult.Error("네이버 iOS SDK 연동 필요 (CocoaPods/SPM 설정 후 사용 가능)")
-    }
-
-    // Google iOS SDK 연동 - GoogleSignIn CocoaPods/SPM 추가 후 활성화
-    private suspend fun loginWithGoogleIOS(): OAuthResult {
-        return OAuthResult.Error("Google iOS SDK 연동 필요 (CocoaPods/SPM 설정 후 사용 가능)")
+        session.presentationContextProvider = contextProvider
+        session.prefersEphemeralWebBrowserSession = true
+        session.start()
     }
 
     actual fun logout() {
-        // Apple은 별도 로그아웃 불필요 (토큰 삭제로 처리)
+        // 웹 OAuth는 별도 로그아웃 불필요 (토큰 삭제로 처리)
     }
 
     actual fun isAvailable(provider: AuthProvider): Boolean {
         return when (provider) {
-            AuthProvider.APPLE -> true
-            AuthProvider.KAKAO -> false   // CocoaPods 설정 후 true로 변경
-            AuthProvider.NAVER -> false   // CocoaPods 설정 후 true로 변경
-            AuthProvider.GOOGLE -> false  // CocoaPods 설정 후 true로 변경
+            AuthProvider.KAKAO -> true
+            AuthProvider.NAVER -> true
+            AuthProvider.GOOGLE -> true
+            AuthProvider.APPLE -> false
         }
     }
 
