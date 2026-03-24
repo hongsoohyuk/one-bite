@@ -17,8 +17,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.onebite.app.data.api.OneBiteApi
 import com.onebite.app.data.model.CreateSplitRequest
+import com.onebite.app.location.DeviceLocation
+import com.onebite.app.location.LocationProvider
 import com.onebite.app.ui.component.formatPrice
+import kotlin.math.abs
+import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
+
+private fun Double.coordStr(): String {
+    val rounded = (this * 10000).roundToInt()
+    val intPart = rounded / 10000
+    val fracPart = abs(rounded % 10000)
+    return "$intPart.${fracPart.toString().padStart(4, '0')}"
+}
 
 // CreateSplitScreen.kt - 나눠사기 등록 화면
 //
@@ -42,6 +53,9 @@ fun CreateSplitScreen(
     var totalQty by remember { mutableStateOf("") }
     var splitCount by remember { mutableStateOf("") }
     var address by remember { mutableStateOf("") }
+
+    var currentLocation by remember { mutableStateOf<DeviceLocation?>(null) }
+    var isLocating by remember { mutableStateOf(false) }
 
     var isSubmitting by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -172,13 +186,48 @@ fun CreateSplitScreen(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 trailingIcon = {
-                    IconButton(onClick = { /* TODO: GPS 위치 자동 입력 */ }) {
-                        Icon(
-                            Icons.Default.LocationOn,
-                            contentDescription = "현재 위치",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
+                    IconButton(
+                        onClick = {
+                            coroutineScope.launch {
+                                isLocating = true
+                                val granted = LocationProvider.requestPermission()
+                                if (granted) {
+                                    val location = LocationProvider.getCurrentLocation()
+                                    if (location != null) {
+                                        currentLocation = location
+                                        snackbarHostState.showSnackbar(
+                                            "위치 캡처 완료 (${location.latitude.coordStr()}, ${location.longitude.coordStr()})"
+                                        )
+                                    } else {
+                                        snackbarHostState.showSnackbar("위치를 가져올 수 없습니다")
+                                    }
+                                } else {
+                                    snackbarHostState.showSnackbar("위치 권한이 필요합니다")
+                                }
+                                isLocating = false
+                            }
+                        },
+                        enabled = !isLocating
+                    ) {
+                        if (isLocating) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Icon(
+                                Icons.Default.LocationOn,
+                                contentDescription = "현재 위치",
+                                tint = if (currentLocation != null)
+                                    MaterialTheme.colorScheme.primary
+                                else
+                                    MaterialTheme.colorScheme.outline
+                            )
+                        }
                     }
+                },
+                supportingText = currentLocation?.let { loc ->
+                    { Text("GPS: ${loc.latitude.coordStr()}, ${loc.longitude.coordStr()}") }
                 }
             )
 
@@ -235,8 +284,8 @@ fun CreateSplitScreen(
                                 totalPrice = totalPriceInt!!,
                                 totalQty = totalQtyInt!!,
                                 splitCount = splitCountInt!!,
-                                latitude = 0.0,  // TODO: GPS 연동
-                                longitude = 0.0, // TODO: GPS 연동
+                                latitude = currentLocation?.latitude ?: 0.0,
+                                longitude = currentLocation?.longitude ?: 0.0,
                                 address = address.trim()
                             )
                             OneBiteApi.createSplit(request)
