@@ -1,6 +1,9 @@
 package com.onebite.server.split
 
 import com.onebite.server.user.UserRepository
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.PageImpl
+import org.springframework.data.domain.Pageable
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.web.server.ResponseStatusException
@@ -10,7 +13,8 @@ import kotlin.math.*
 class SplitService(
     private val splitRepository: SplitRepository,
     private val splitParticipantRepository: SplitParticipantRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val splitLocationQuery: SplitLocationQuery
 ) {
     fun create(dto: CreateSplitDto, userId: Long): SplitResponse {
         val author = userRepository.findById(userId)
@@ -30,8 +34,8 @@ class SplitService(
         return SplitResponse.from(splitRepository.save(entity))
     }
 
-    fun findAll(): List<SplitResponse> =
-        splitRepository.findAll().map { toResponse(it) }
+    fun findAll(pageable: Pageable): Page<SplitResponse> =
+        splitRepository.findAll(pageable).map { toResponse(it) }
 
     fun findById(id: Long): SplitResponse {
         val entity = splitRepository.findById(id)
@@ -39,18 +43,21 @@ class SplitService(
         return toResponse(entity)
     }
 
-    fun findByStatus(status: SplitStatus): List<SplitResponse> =
-        splitRepository.findByStatus(status).map { toResponse(it) }
+    fun findByStatus(status: SplitStatus, pageable: Pageable): Page<SplitResponse> =
+        splitRepository.findByStatus(status, pageable).map { toResponse(it) }
 
-    fun findByAuthorId(userId: Long): List<SplitResponse> =
-        splitRepository.findByAuthorId(userId).map { toResponse(it) }
+    fun findByAuthorId(userId: Long, pageable: Pageable): Page<SplitResponse> =
+        splitRepository.findByAuthorId(userId, pageable).map { toResponse(it) }
 
-    fun findNearby(lat: Double, lng: Double, radiusKm: Double = 3.0): List<SplitResponse> =
-        splitRepository.findNearby(lat, lng, radiusKm).map { entity ->
+    fun findNearby(lat: Double, lng: Double, radiusKm: Double = 3.0, pageable: Pageable): Page<SplitResponse> {
+        val page = splitLocationQuery.findNearby(lat, lng, radiusKm, pageable)
+        val responses = page.content.map { entity ->
             val distance = haversineDistance(lat, lng, entity.latitude, entity.longitude)
             val participants = splitParticipantRepository.findBySplitRequestId(entity.id)
             SplitResponse.from(entity, participants, distance)
         }
+        return PageImpl(responses, pageable, page.totalElements)
+    }
 
     fun join(splitId: Long, userId: Long): SplitResponse {
         val split = splitRepository.findById(splitId)

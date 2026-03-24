@@ -3,6 +3,7 @@ package com.onebite.server.split
 import com.onebite.server.user.User
 import jakarta.validation.constraints.Min
 import jakarta.validation.constraints.NotBlank
+import org.springframework.data.domain.Page
 
 // ── Request DTO: 클라이언트가 보내는 데이터 ──
 data class CreateSplitDto(
@@ -97,6 +98,27 @@ data class SplitResponse(
             },
             currentParticipants = participants.size + 1,
             distanceKm = distanceKm?.let { Math.round(it * 100) / 100.0 }
+        )
+    }
+}
+
+// ── 페이지네이션 응답 ──
+data class PageResponse<T>(
+    val content: List<T>,
+    val page: Int,
+    val size: Int,
+    val totalElements: Long,
+    val totalPages: Int,
+    val hasNext: Boolean
+) {
+    companion object {
+        fun <T> from(page: Page<T>) = PageResponse(
+            content = page.content,
+            page = page.number,
+            size = page.size,
+            totalElements = page.totalElements,
+            totalPages = page.totalPages,
+            hasNext = page.hasNext()
         )
     }
 }

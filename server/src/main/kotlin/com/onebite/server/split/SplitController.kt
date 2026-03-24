@@ -1,30 +1,35 @@
 package com.onebite.server.split
 
 import jakarta.validation.Valid
+import org.springframework.data.domain.PageRequest
 import org.springframework.http.HttpStatus
 import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.*
 
-// Next.js 대응: app/api/splits/route.ts
 @RestController
 @RequestMapping("/api/splits")
 class SplitController(
     private val splitService: SplitService
 ) {
-    // GET /api/splits?lat=37.5&lng=126.9&radiusKm=3&status=WAITING
+    // GET /api/splits?page=0&size=20&lat=37.5&lng=126.9&radiusKm=3&status=WAITING
     @GetMapping
     fun getAll(
         @RequestParam status: SplitStatus? = null,
         @RequestParam lat: Double? = null,
         @RequestParam lng: Double? = null,
-        @RequestParam radiusKm: Double? = null
-    ): List<SplitResponse> =
-        if (lat != null && lng != null)
-            splitService.findNearby(lat, lng, radiusKm ?: 3.0)
+        @RequestParam radiusKm: Double? = null,
+        @RequestParam(defaultValue = "0") page: Int,
+        @RequestParam(defaultValue = "20") size: Int
+    ): PageResponse<SplitResponse> {
+        val pageable = PageRequest.of(page, size)
+        val result = if (lat != null && lng != null)
+            splitService.findNearby(lat, lng, radiusKm ?: 3.0, pageable)
         else if (status != null)
-            splitService.findByStatus(status)
+            splitService.findByStatus(status, pageable)
         else
-            splitService.findAll()
+            splitService.findAll(pageable)
+        return PageResponse.from(result)
+    }
 
     // GET /api/splits/{id}
     @GetMapping("/{id}")
@@ -39,11 +44,16 @@ class SplitController(
         return splitService.create(dto, userId)
     }
 
-    // GET /api/splits/my
+    // GET /api/splits/my?page=0&size=20
     @GetMapping("/my")
-    fun getMy(authentication: Authentication): List<SplitResponse> {
+    fun getMy(
+        authentication: Authentication,
+        @RequestParam(defaultValue = "0") page: Int,
+        @RequestParam(defaultValue = "20") size: Int
+    ): PageResponse<SplitResponse> {
         val userId = authentication.principal as Long
-        return splitService.findByAuthorId(userId)
+        val pageable = PageRequest.of(page, size)
+        return PageResponse.from(splitService.findByAuthorId(userId, pageable))
     }
 
     // POST /api/splits/{id}/join
