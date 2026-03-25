@@ -98,10 +98,20 @@ src/main/kotlin/com/onebite/server/
 - [x] 페이지네이션 (목록 API — page/size 파라미터, PageResponse DTO)
 - [x] PostGIS 네이티브 쿼리 (프로필 기반 전략 — SplitLocationQuery)
 
-### TODO
+### TODO (우선순위순)
+
+**즉시 (배포 블로커)**
+- [ ] EC2 배포 — Docker Compose로 PostgreSQL + Spring Boot 올리기
+- [ ] 둘러보기(비인증) 허용 — GET /api/splits 비인증으로 열기 (SecurityConfig 수정)
+- [ ] OAuth redirect relay — iOS 웹 OAuth용 엔드포인트 (`GET /api/auth/callback/{provider}` → 커스텀 스킴 리다이렉트)
+
+**다음 (안정성)**
 - [ ] Apple SignIn 서명 검증 (현재 JWT 디코딩만, Apple 공개키 검증 누락)
 - [ ] 테스트 코드 (현재 contextLoads 스모크 테스트만)
-- [ ] 푸시 알림 (FCM + APNs)
-- [ ] 인앱 채팅 (Phase 2)
-- [ ] PG 에스크로 연동 (Phase 2)
 - [ ] Rate limiting
+- [ ] Swagger/OpenAPI 문서 자동 생성
+
+**Phase 2**
+- [ ] 푸시 알림 (FCM + APNs)
+- [ ] 인앱 채팅
+- [ ] PG 에스크로 연동
