@@ -1,11 +1,17 @@
 package com.onebite.app.ui.screen
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -119,11 +125,8 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // 구글 로그인
-        SocialLoginButton(
-            text = "Google로 시작하기",
-            containerColor = Color.White,
-            contentColor = Color(0xFF1F1F1F),
+        // 구글 로그인 (Google 브랜드 가이드라인 준수)
+        GoogleLoginButton(
             enabled = !isLoading && OAuthHandler.isAvailable(AuthProvider.GOOGLE),
             onClick = {
                 scope.launch {
@@ -202,5 +205,74 @@ private fun SocialLoginButton(
             fontSize = 15.sp,
             fontWeight = FontWeight.Bold
         )
+    }
+}
+
+/** Google 브랜드 가이드라인 준수 로그인 버튼 (Light 테마) */
+@Composable
+private fun GoogleLoginButton(
+    enabled: Boolean,
+    onClick: () -> Unit
+) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(48.dp),
+        enabled = enabled,
+        colors = ButtonDefaults.outlinedButtonColors(
+            containerColor = Color.White,
+            contentColor = Color(0xFF1F1F1F),
+            disabledContainerColor = Color.White.copy(alpha = 0.4f),
+            disabledContentColor = Color(0xFF1F1F1F).copy(alpha = 0.4f)
+        ),
+        border = BorderStroke(1.dp, Color(0xFF747775)),
+        shape = MaterialTheme.shapes.medium
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            GoogleGLogo(modifier = Modifier.size(18.dp))
+            Spacer(modifier = Modifier.width(10.dp))
+            Text(
+                text = "Google 계정으로 로그인",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium
+            )
+        }
+    }
+}
+
+/** Google 'G' 멀티컬러 로고 (Canvas) */
+@Composable
+private fun GoogleGLogo(modifier: Modifier = Modifier) {
+    val blue = Color(0xFF4285F4)
+    val red = Color(0xFFEA4335)
+    val yellow = Color(0xFFFBBC05)
+    val green = Color(0xFF34A853)
+
+    Canvas(modifier = modifier) {
+        val strokeWidth = size.width * 0.22f
+        val radius = (size.width - strokeWidth) / 2f
+        val center = Offset(size.width / 2f, size.height / 2f)
+        val arcStyle = Stroke(width = strokeWidth, cap = StrokeCap.Butt)
+        val arcTopLeft = Offset(center.x - radius, center.y - radius)
+        val arcSize = Size(radius * 2f, radius * 2f)
+
+        // Blue: 오른쪽 (315° ~ 45°, 즉 -45° ~ 45°)
+        drawArc(color = blue, startAngle = -45f, sweepAngle = 90f, useCenter = false, topLeft = arcTopLeft, size = arcSize, style = arcStyle)
+        // Green: 아래쪽 (45° ~ 135°)
+        drawArc(color = green, startAngle = 45f, sweepAngle = 90f, useCenter = false, topLeft = arcTopLeft, size = arcSize, style = arcStyle)
+        // Yellow: 왼쪽 (135° ~ 225°)
+        drawArc(color = yellow, startAngle = 135f, sweepAngle = 90f, useCenter = false, topLeft = arcTopLeft, size = arcSize, style = arcStyle)
+        // Red: 위쪽 (225° ~ 315°)
+        drawArc(color = red, startAngle = 225f, sweepAngle = 90f, useCenter = false, topLeft = arcTopLeft, size = arcSize, style = arcStyle)
+
+        // 파란색 가로 바 (G의 안쪽 수평선)
+        val barHeight = strokeWidth
+        val barLeft = center.x
+        val barTop = center.y - barHeight / 2f
+        drawRect(color = blue, topLeft = Offset(barLeft, barTop), size = Size(radius + strokeWidth / 2f, barHeight))
     }
 }
