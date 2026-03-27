@@ -14,10 +14,16 @@ class AuthService(
     private val userRepository: UserRepository,
     private val jwtProvider: JwtProvider
 ) {
-    // 카카오 로그인
+    // 카카오 로그인 (인가코드 → 토큰 교환 → userInfo)
     fun kakaoLogin(authCode: String): AuthResponse {
         val kakaoToken = kakaoClient.getAccessToken(authCode)
         val userInfo = kakaoClient.getUserInfo(kakaoToken)
+        return loginOrRegister(AuthProvider.KAKAO, userInfo)
+    }
+
+    // 카카오 로그인 (액세스토큰 → 바로 userInfo)
+    fun kakaoLoginWithToken(accessToken: String): AuthResponse {
+        val userInfo = kakaoClient.getUserInfo(accessToken)
         return loginOrRegister(AuthProvider.KAKAO, userInfo)
     }
 

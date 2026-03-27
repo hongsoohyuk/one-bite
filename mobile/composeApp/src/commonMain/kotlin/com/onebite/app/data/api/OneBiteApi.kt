@@ -29,9 +29,8 @@ import kotlinx.serialization.json.Json
 
 object OneBiteApi {
 
-    // 서버 Base URL (개발 환경)
-    // Android 에뮬레이터에서 localhost 접근 시 10.0.2.2 사용
-    private const val BASE_URL = "http://10.0.2.2:8080/api"
+    // 서버 Base URL (EC2)
+    private const val BASE_URL = "http://3.39.156.85:8080/api"
 
     // JWT 토큰 저장 (추후 보안 저장소로 교체 예정)
     // React에서 localStorage.setItem("token", token)과 비슷
@@ -76,9 +75,9 @@ object OneBiteApi {
 
     // ===== Auth API =====
 
-    suspend fun loginWithKakao(code: String): LoginResponse {
+    suspend fun loginWithKakao(code: String? = null, accessToken: String? = null): LoginResponse {
         return client.post("/auth/kakao") {
-            setBody(KakaoLoginRequest(code = code))
+            setBody(KakaoLoginRequest(code = code, accessToken = accessToken))
         }.body()
     }
 

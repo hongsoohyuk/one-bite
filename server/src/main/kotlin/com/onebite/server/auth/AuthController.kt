@@ -7,10 +7,13 @@ import org.springframework.web.bind.annotation.*
 class AuthController(
     private val authService: AuthService
 ) {
-    // POST /api/auth/kakao — 카카오 인가코드로 로그인
+    // POST /api/auth/kakao — 카카오 로그인 (인가코드 or 액세스토큰)
     @PostMapping("/kakao")
     fun kakaoLogin(@RequestBody request: KakaoLoginRequest): AuthResponse =
-        authService.kakaoLogin(request.code)
+        if (request.accessToken != null)
+            authService.kakaoLoginWithToken(request.accessToken)
+        else
+            authService.kakaoLogin(request.code!!)
 
     // POST /api/auth/naver — 네이버 인가코드로 로그인
     @PostMapping("/naver")
@@ -29,7 +32,8 @@ class AuthController(
 }
 
 data class KakaoLoginRequest(
-    val code: String  // 카카오 인가 코드
+    val code: String? = null,        // iOS: 인가 코드
+    val accessToken: String? = null  // Android: SDK에서 받은 액세스 토큰
 )
 
 data class NaverLoginRequest(

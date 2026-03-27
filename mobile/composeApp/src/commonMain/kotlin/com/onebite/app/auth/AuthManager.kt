@@ -12,7 +12,8 @@ object AuthManager {
                 is OAuthResult.Success -> {
                     val response = when (provider) {
                         AuthProvider.KAKAO -> OneBiteApi.loginWithKakao(
-                            code = oauthResult.accessToken ?: oauthResult.authCode!!
+                            code = oauthResult.authCode,
+                            accessToken = oauthResult.accessToken
                         )
                         AuthProvider.NAVER -> OneBiteApi.loginWithNaver(
                             code = oauthResult.accessToken ?: oauthResult.authCode!!,

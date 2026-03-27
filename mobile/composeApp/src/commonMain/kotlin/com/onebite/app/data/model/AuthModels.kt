@@ -11,7 +11,8 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class KakaoLoginRequest(
-    val code: String
+    val code: String? = null,        // iOS: 인가 코드
+    val accessToken: String? = null  // Android: SDK 액세스 토큰
 )
 
 @Serializable
