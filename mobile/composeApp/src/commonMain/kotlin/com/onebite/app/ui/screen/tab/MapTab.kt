@@ -53,13 +53,13 @@ fun MapTab(
         coroutineScope.launch {
             uiState = MapUiState.Loading
             uiState = try {
-                val splits = OneBiteApi.getSplits(
+                val page = OneBiteApi.getSplits(
                     lat = lat,
                     lng = lng,
                     radiusKm = 3.0
                 )
-                if (splits.isEmpty()) MapUiState.Empty
-                else MapUiState.Success(splits)
+                if (page.content.isEmpty()) MapUiState.Empty
+                else MapUiState.Success(page.content)
             } catch (e: Exception) {
                 MapUiState.Error(e.message ?: "주변 나눠사기를 불러올 수 없습니다")
             }

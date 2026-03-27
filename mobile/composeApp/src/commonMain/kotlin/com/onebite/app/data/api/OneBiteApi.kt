@@ -30,7 +30,7 @@ import kotlinx.serialization.json.Json
 object OneBiteApi {
 
     // 서버 Base URL (EC2)
-    private const val BASE_URL = "http://3.39.156.85:8080/api"
+    private const val BASE_URL = "http://3.39.156.85:8080/api/"
 
     // JWT 토큰 저장 (추후 보안 저장소로 교체 예정)
     // React에서 localStorage.setItem("token", token)과 비슷
@@ -76,25 +76,25 @@ object OneBiteApi {
     // ===== Auth API =====
 
     suspend fun loginWithKakao(code: String? = null, accessToken: String? = null): LoginResponse {
-        return client.post("/auth/kakao") {
+        return client.post("auth/kakao") {
             setBody(KakaoLoginRequest(code = code, accessToken = accessToken))
         }.body()
     }
 
     suspend fun loginWithNaver(code: String, state: String): LoginResponse {
-        return client.post("/auth/naver") {
+        return client.post("auth/naver") {
             setBody(NaverLoginRequest(code = code, state = state))
         }.body()
     }
 
     suspend fun loginWithGoogle(code: String): LoginResponse {
-        return client.post("/auth/google") {
+        return client.post("auth/google") {
             setBody(GoogleLoginRequest(code = code))
         }.body()
     }
 
     suspend fun loginWithApple(idToken: String): LoginResponse {
-        return client.post("/auth/apple") {
+        return client.post("auth/apple") {
             setBody(AppleLoginRequest(idToken = idToken))
         }.body()
     }
@@ -108,8 +108,8 @@ object OneBiteApi {
         lat: Double? = null,
         lng: Double? = null,
         radiusKm: Double? = null
-    ): List<SplitItem> {
-        return client.get("/splits") {
+    ): PageResponse<SplitItem> {
+        return client.get("splits") {
             status?.let { parameter("status", it) }
             lat?.let { parameter("lat", it) }
             lng?.let { parameter("lng", it) }
@@ -120,13 +120,13 @@ object OneBiteApi {
     // 나눠사기 단건 조회
     // React: const { data } = await api.get(`/splits/${id}`)
     suspend fun getSplit(id: Long): SplitItem {
-        return client.get("/splits/$id").body()
+        return client.get("splits/$id").body()
     }
 
     // 나눠사기 등록
     // React: const { data } = await api.post('/splits', splitData)
     suspend fun createSplit(request: CreateSplitRequest): SplitItem {
-        return client.post("/splits") {
+        return client.post("splits") {
             setBody(request)
         }.body()
     }
@@ -134,13 +134,13 @@ object OneBiteApi {
     // 나눠사기 참여
     // React: const { data } = await api.post(`/splits/${id}/join`)
     suspend fun joinSplit(id: Long): SplitItem {
-        return client.post("/splits/$id/join").body()
+        return client.post("splits/$id/join").body()
     }
 
     // 나눠사기 취소 (등록자 본인)
     // React: await api.delete(`/splits/${id}`)
     suspend fun cancelSplit(id: Long) {
-        client.delete("/splits/$id")
+        client.delete("splits/$id")
     }
 
     // ===== User API =====
@@ -157,7 +157,7 @@ object OneBiteApi {
     // 내 프로필 조회
     // React: const { data } = await api.get('/users/me')
     suspend fun getMyProfile(): UserProfile {
-        return client.get("/users/me").body()
+        return client.get("users/me").body()
     }
 
     fun logout() {

@@ -50,9 +50,9 @@ fun HomeTab(
         coroutineScope.launch {
             uiState = HomeUiState.Loading
             uiState = try {
-                val splits = OneBiteApi.getSplits()
-                if (splits.isEmpty()) HomeUiState.Empty
-                else HomeUiState.Success(splits)
+                val page = OneBiteApi.getSplits()
+                if (page.content.isEmpty()) HomeUiState.Empty
+                else HomeUiState.Success(page.content)
             } catch (e: Exception) {
                 HomeUiState.Error(e.message ?: "목록을 불러올 수 없습니다")
             }
@@ -62,9 +62,9 @@ fun HomeTab(
     // 최초 로드 (React의 useEffect(() => { ... }, []))
     LaunchedEffect(Unit) {
         uiState = try {
-            val splits = OneBiteApi.getSplits()
-            if (splits.isEmpty()) HomeUiState.Empty
-            else HomeUiState.Success(splits)
+            val page = OneBiteApi.getSplits()
+            if (page.content.isEmpty()) HomeUiState.Empty
+            else HomeUiState.Success(page.content)
         } catch (e: Exception) {
             HomeUiState.Error(e.message ?: "목록을 불러올 수 없습니다")
         }
