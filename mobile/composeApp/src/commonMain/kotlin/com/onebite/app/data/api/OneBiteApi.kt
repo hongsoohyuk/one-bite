@@ -87,9 +87,9 @@ object OneBiteApi {
         }.body()
     }
 
-    suspend fun loginWithGoogle(code: String): LoginResponse {
+    suspend fun loginWithGoogle(code: String? = null, idToken: String? = null): LoginResponse {
         return client.post("auth/google") {
-            setBody(GoogleLoginRequest(code = code))
+            setBody(GoogleLoginRequest(code = code, idToken = idToken))
         }.body()
     }
 

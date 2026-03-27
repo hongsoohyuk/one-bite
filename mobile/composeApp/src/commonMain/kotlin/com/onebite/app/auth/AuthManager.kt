@@ -20,7 +20,8 @@ object AuthManager {
                             state = oauthResult.state ?: ""
                         )
                         AuthProvider.GOOGLE -> OneBiteApi.loginWithGoogle(
-                            code = oauthResult.authCode ?: oauthResult.idToken!!
+                            code = oauthResult.authCode,
+                            idToken = oauthResult.idToken
                         )
                         AuthProvider.APPLE -> OneBiteApi.loginWithApple(
                             idToken = oauthResult.idToken!!

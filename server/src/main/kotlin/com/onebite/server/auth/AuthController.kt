@@ -38,10 +38,13 @@ class AuthController(
     fun naverLogin(@RequestBody request: NaverLoginRequest): AuthResponse =
         authService.naverLogin(request.code, request.state)
 
-    // POST /api/auth/google — Google 인가코드로 로그인
+    // POST /api/auth/google — Google 로그인 (인가코드 or ID 토큰)
     @PostMapping("/google")
     fun googleLogin(@RequestBody request: GoogleLoginRequest): AuthResponse =
-        authService.googleLogin(request.code)
+        if (request.idToken != null)
+            authService.googleLoginWithToken(request.idToken)
+        else
+            authService.googleLogin(request.code!!)
 
     // POST /api/auth/apple — Apple ID 토큰으로 로그인
     @PostMapping("/apple")
@@ -60,7 +63,8 @@ data class NaverLoginRequest(
 )
 
 data class GoogleLoginRequest(
-    val code: String  // Google 인가 코드
+    val code: String? = null,     // iOS: 인가 코드
+    val idToken: String? = null   // Android: Credential Manager ID 토큰
 )
 
 data class AppleLoginRequest(

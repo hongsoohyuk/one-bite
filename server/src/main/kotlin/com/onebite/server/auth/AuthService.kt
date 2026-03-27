@@ -34,10 +34,16 @@ class AuthService(
         return loginOrRegister(AuthProvider.NAVER, userInfo)
     }
 
-    // Google 로그인
+    // Google 로그인 (인가코드 → 토큰 교환 → userInfo)
     fun googleLogin(authCode: String): AuthResponse {
         val googleToken = googleClient.getAccessToken(authCode)
         val userInfo = googleClient.getUserInfo(googleToken)
+        return loginOrRegister(AuthProvider.GOOGLE, userInfo)
+    }
+
+    // Google 로그인 (ID 토큰 → 검증 → userInfo)
+    fun googleLoginWithToken(idToken: String): AuthResponse {
+        val userInfo = googleClient.verifyIdTokenAndGetUserInfo(idToken)
         return loginOrRegister(AuthProvider.GOOGLE, userInfo)
     }
 

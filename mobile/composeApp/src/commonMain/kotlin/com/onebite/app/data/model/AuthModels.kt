@@ -23,7 +23,8 @@ data class NaverLoginRequest(
 
 @Serializable
 data class GoogleLoginRequest(
-    val code: String
+    val code: String? = null,     // iOS: 인가 코드
+    val idToken: String? = null   // Android: Credential Manager ID 토큰
 )
 
 @Serializable

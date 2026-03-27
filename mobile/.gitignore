@@ -8,6 +8,7 @@ captures
 .externalNativeBuild
 .cxx
 *.xcuserdata
+**/xcuserdata/
 *.xcworkspace
 Pods/
 .kotlin/

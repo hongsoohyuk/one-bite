@@ -1,5 +1,8 @@
 package com.onebite.server.auth
 
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier
+import com.google.api.client.http.javanet.NetHttpTransport
+import com.google.api.client.json.gson.GsonFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpEntity
 import org.springframework.http.HttpHeaders
@@ -16,6 +19,10 @@ class GoogleClient(
     @Value("\${google.redirect-uri}") private val redirectUri: String
 ) {
     private val restTemplate = RestTemplate()
+
+    private val idTokenVerifier = GoogleIdTokenVerifier.Builder(
+        NetHttpTransport(), GsonFactory.getDefaultInstance()
+    ).setAudience(listOf(clientId)).build()
 
     // Google 인가코드로 액세스 토큰 받기
     fun getAccessToken(authCode: String): String {
@@ -41,7 +48,20 @@ class GoogleClient(
             ?: throw RuntimeException("Google 토큰 발급 실패")
     }
 
-    // 액세스 토큰으로 유저 정보 가져오기
+    // Google ID 토큰 검증 → 유저 정보 추출 (Android Credential Manager용)
+    fun verifyIdTokenAndGetUserInfo(idTokenString: String): SocialUserInfo {
+        val idToken = idTokenVerifier.verify(idTokenString)
+            ?: throw RuntimeException("Google ID 토큰 검증 실패")
+
+        val payload = idToken.payload
+        return SocialUserInfo(
+            id = payload.subject,
+            nickname = payload["name"] as? String ?: "한입유저",
+            profileImageUrl = payload["picture"] as? String
+        )
+    }
+
+    // 액세스 토큰으로 유저 정보 가져오기 (iOS 웹 OAuth용)
     fun getUserInfo(accessToken: String): SocialUserInfo {
         val headers = HttpHeaders().apply {
             set("Authorization", "Bearer $accessToken")
