@@ -1,4 +1,4 @@
-.PHONY: dev dev-down prod prod-down build logs logs-server logs-db clean
+.PHONY: dev dev-down prod prod-down build-server build-mobile build-web build-all test-server test-mobile test-web test-all lint-server lint-mobile logs logs-server logs-db clean
 
 # 개발 환경
 dev:
@@ -14,10 +14,6 @@ prod:
 prod-down:
 	docker compose -f docker-compose.prod.yml down
 
-# 서버 빌드 (로컬)
-build:
-	cd server && ./gradlew bootJar
-
 # 로그
 logs:
 	docker compose logs -f
@@ -32,3 +28,34 @@ logs-db:
 clean:
 	docker compose down -v
 	cd server && ./gradlew clean
+
+# === 영역별 빌드 ===
+build-server:
+	cd server && ./gradlew bootJar
+
+build-mobile:
+	cd mobile && ./gradlew build
+
+build-web:
+	cd web && npm run build
+
+build-all: build-server build-mobile build-web
+
+# === 영역별 테스트 ===
+test-server:
+	cd server && ./gradlew test
+
+test-mobile:
+	cd mobile && ./gradlew allTests
+
+test-web:
+	cd web && npm test
+
+test-all: test-server test-mobile test-web
+
+# === 영역별 lint ===
+lint-server:
+	cd server && ./gradlew ktlintCheck
+
+lint-mobile:
+	cd mobile && ./gradlew ktlintCheck
