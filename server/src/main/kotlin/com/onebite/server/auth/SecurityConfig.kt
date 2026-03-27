@@ -26,6 +26,8 @@ class SecurityConfig(
             .authorizeHttpRequests {
                 it
                     .requestMatchers("/api/auth/**").permitAll()   // 인증 없이 접근 가능
+                    .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/splits", "/api/splits/{id}").permitAll() // 둘러보기
+                    .requestMatchers("/actuator/health").permitAll() // 헬스체크
                     .requestMatchers("/h2-console/**").permitAll() // 개발용 H2 콘솔
                     .requestMatchers("/error").permitAll()         // 에러 페이지 접근 허용
                     .anyRequest().authenticated()                  // 나머지는 JWT 필요
