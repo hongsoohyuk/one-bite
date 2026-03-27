@@ -21,11 +21,11 @@ actual object OAuthHandler {
     private val googleClientId get() = com.onebite.app.Secrets.GOOGLE_CLIENT_ID
 
     private const val CALLBACK_SCHEME = "com.onebite.app"
-    // 카카오 콘솔에는 https://onebite.app/oauth/kakao 등록
-    // ASWebAuthenticationSession은 callbackURLScheme으로 앱 복귀를 처리
-    private const val KAKAO_REDIRECT_URI = "https://onebite.app/oauth/kakao"
-    private const val NAVER_REDIRECT_URI = "https://onebite.app/oauth/naver"
-    private const val GOOGLE_REDIRECT_URI = "https://onebite.app/oauth/google"
+    // 서버 OAuth redirect relay — 서버가 커스텀 스킴으로 리다이렉트해줌
+    private const val SERVER_BASE = "http://3.39.156.85:8080"
+    private const val KAKAO_REDIRECT_URI = "$SERVER_BASE/api/auth/callback/kakao"
+    private const val NAVER_REDIRECT_URI = "$SERVER_BASE/api/auth/callback/naver"
+    private const val GOOGLE_REDIRECT_URI = "$SERVER_BASE/api/auth/callback/google"
 
     actual suspend fun login(provider: AuthProvider): OAuthResult {
         return when (provider) {

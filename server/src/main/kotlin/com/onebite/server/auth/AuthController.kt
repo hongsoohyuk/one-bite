@@ -1,5 +1,6 @@
 package com.onebite.server.auth
 
+import jakarta.servlet.http.HttpServletResponse
 import org.springframework.web.bind.annotation.*
 
 @RestController
@@ -7,6 +8,23 @@ import org.springframework.web.bind.annotation.*
 class AuthController(
     private val authService: AuthService
 ) {
+    // GET /api/auth/callback/{provider} — OAuth redirect relay (iOS 웹 OAuth용)
+    // 카카오 등에서 리다이렉트 → 커스텀 스킴으로 앱에 전달
+    @GetMapping("/callback/{provider}")
+    fun oauthCallback(
+        @PathVariable provider: String,
+        @RequestParam code: String?,
+        @RequestParam state: String?,
+        response: HttpServletResponse
+    ) {
+        val scheme = "com.onebite.app"
+        val params = buildList {
+            code?.let { add("code=$it") }
+            state?.let { add("state=$it") }
+        }.joinToString("&")
+        response.sendRedirect("$scheme://oauth/$provider?$params")
+    }
+
     // POST /api/auth/kakao — 카카오 로그인 (인가코드 or 액세스토큰)
     @PostMapping("/kakao")
     fun kakaoLogin(@RequestBody request: KakaoLoginRequest): AuthResponse =
