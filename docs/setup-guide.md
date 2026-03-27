@@ -34,9 +34,7 @@ sdk.dir=/path/to/Android/sdk
 
 KAKAO_NATIVE_APP_KEY=카카오_네이티브_앱_키
 NAVER_CLIENT_ID=네이버_클라이언트_ID
-NAVER_CLIENT_SECRET=네이버_클라이언트_시크릿
 GOOGLE_CLIENT_ID_ANDROID=구글_안드로이드_클라이언트_ID
-GOOGLE_CLIENT_ID_IOS=구글_iOS_클라이언트_ID
 ```
 
 > 키 값은 팀 내부 채널에서 공유 (절대 git에 커밋하지 않음)
@@ -49,3 +47,49 @@ GOOGLE_CLIENT_ID_IOS=구글_iOS_클라이언트_ID
 | 네이버 | https://developers.naver.com |
 | 구글 | https://console.cloud.google.com |
 | 애플 | https://developer.apple.com |
+
+## 4. EC2 서버 관리
+
+### 인스턴스 정보
+- IP: `3.39.156.85`
+- 리전: ap-northeast-2 (서울)
+
+### SSH 접속
+```bash
+ssh -i ~/.ssh/your-key.pem ec2-user@3.39.156.85
+```
+
+### 서버 중지 (비용 절약)
+
+SSH 접속 중이라면:
+```bash
+sudo shutdown -h now
+```
+
+또는 로컬에서 AWS CLI로:
+```bash
+# 인스턴스 ID 확인
+aws ec2 describe-instances --filters "Name=ip-address,Values=3.39.156.85" --query "Reservations[].Instances[].InstanceId" --output text
+
+# 중지 (Stop) — EBS 비용만 소량 발생, 다시 시작 가능
+aws ec2 stop-instances --instance-ids <인스턴스ID>
+
+# 상태 확인
+aws ec2 describe-instances --instance-ids <인스턴스ID> --query "Reservations[].Instances[].State.Name" --output text
+```
+
+### 서버 시작
+```bash
+aws ec2 start-instances --instance-ids <인스턴스ID>
+
+# IP가 바뀔 수 있으므로 새 퍼블릭 IP 확인
+aws ec2 describe-instances --instance-ids <인스턴스ID> --query "Reservations[].Instances[].PublicIpAddress" --output text
+```
+
+> **참고**: Elastic IP를 할당하지 않으면 재시작 시 퍼블릭 IP가 변경됩니다. IP가 바뀌면 모바일 `OneBiteApi.kt`와 `OAuthHandler`의 `SERVER_BASE` URL도 업데이트해야 합니다.
+
+### Stop vs Terminate
+| 명령 | 효과 | 비용 |
+|------|------|------|
+| `stop` | 인스턴스 중지, 데이터 유지 | EBS 스토리지만 |
+| `terminate` | 인스턴스 **완전 삭제** | 없음 (복구 불가) |
