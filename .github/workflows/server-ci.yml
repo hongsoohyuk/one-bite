@@ -1,16 +1,18 @@
-name: CI
+name: Server CI
 
 on:
   push:
     branches: [main, develop]
     paths:
       - 'server/**'
-      - '.github/workflows/ci.yml'
+      - 'docs/api-spec.md'
+      - '.github/workflows/server-ci.yml'
   pull_request:
     branches: [main, develop]
     paths:
       - 'server/**'
-      - '.github/workflows/ci.yml'
+      - 'docs/api-spec.md'
+      - '.github/workflows/server-ci.yml'
 
 permissions:
   contents: read
