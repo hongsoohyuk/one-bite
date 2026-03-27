@@ -11,6 +11,7 @@ import org.springframework.web.client.RestTemplate
 @Component
 class KakaoClient(
     @Value("\${kakao.client-id}") private val clientId: String,
+    @Value("\${kakao.client-secret}") private val clientSecret: String,
     @Value("\${kakao.redirect-uri}") private val redirectUri: String
 ) {
     private val restTemplate = RestTemplate()
@@ -20,6 +21,7 @@ class KakaoClient(
         val url = "https://kauth.kakao.com/oauth/token" +
             "?grant_type=authorization_code" +
             "&client_id=$clientId" +
+            "&client_secret=$clientSecret" +
             "&redirect_uri=$redirectUri" +
             "&code=$authCode"
 
