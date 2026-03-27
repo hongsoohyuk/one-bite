@@ -1,5 +1,6 @@
 package com.onebite.app
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -10,6 +11,9 @@ import com.onebite.app.auth.TokenStorage
 import com.onebite.app.location.LocationProvider
 
 class MainActivity : ComponentActivity() {
+
+    private val oauthCallbackScheme = "com.onebite.app"
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -26,13 +30,26 @@ class MainActivity : ComponentActivity() {
             activity = this,
             kakaoAppKey = BuildConfig.KAKAO_NATIVE_APP_KEY,
             naverClientId = BuildConfig.NAVER_CLIENT_ID,
-            naverClientSecret = BuildConfig.NAVER_CLIENT_SECRET,
-            naverAppName = "한입",
             googleClientId = BuildConfig.GOOGLE_CLIENT_ID_ANDROID
         )
 
+        // 딥링크로 시작된 경우 OAuth 콜백 처리
+        handleOAuthIntent(intent)
+
         setContent {
             App()
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleOAuthIntent(intent)
+    }
+
+    private fun handleOAuthIntent(intent: Intent) {
+        val uri = intent.data ?: return
+        if (uri.scheme == oauthCallbackScheme) {
+            OAuthHandler.handleOAuthCallback(uri)
         }
     }
 }

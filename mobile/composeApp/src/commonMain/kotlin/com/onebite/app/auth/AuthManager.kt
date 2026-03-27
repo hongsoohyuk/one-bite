@@ -16,7 +16,7 @@ object AuthManager {
                             accessToken = oauthResult.accessToken
                         )
                         AuthProvider.NAVER -> OneBiteApi.loginWithNaver(
-                            code = oauthResult.accessToken ?: oauthResult.authCode!!,
+                            code = oauthResult.authCode!!,
                             state = oauthResult.state ?: ""
                         )
                         AuthProvider.GOOGLE -> OneBiteApi.loginWithGoogle(

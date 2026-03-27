@@ -1,6 +1,7 @@
 package com.onebite.app.auth
 
-import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.activity.ComponentActivity
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
@@ -10,33 +11,36 @@ import com.kakao.sdk.auth.model.OAuthToken
 import com.kakao.sdk.common.model.ClientError
 import com.kakao.sdk.common.model.ClientErrorCause
 import com.kakao.sdk.user.UserApiClient
-import com.navercorp.nid.NaverIdLoginSDK
-import com.navercorp.nid.oauth.OAuthLoginCallback
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.lang.ref.WeakReference
+import java.util.UUID
 import kotlin.coroutines.resume
 
 actual object OAuthHandler {
 
     private var activityRef: WeakReference<ComponentActivity>? = null
     private var googleClientId: String = ""
+    private var naverClientId: String = ""
+
+    // 웹 OAuth 콜백 대기용
+    private var pendingOAuthResult: CompletableDeferred<OAuthResult>? = null
+
+    private const val SERVER_BASE = "http://3.39.156.85:8080"
+    private const val NAVER_REDIRECT_URI = "$SERVER_BASE/api/auth/callback/naver"
 
     fun initialize(
         activity: ComponentActivity,
         kakaoAppKey: String,
         naverClientId: String,
-        naverClientSecret: String,
-        naverAppName: String,
         googleClientId: String
     ) {
         activityRef = WeakReference(activity)
         this.googleClientId = googleClientId
+        this.naverClientId = naverClientId
 
         // Kakao SDK 초기화
         com.kakao.sdk.common.KakaoSdk.init(activity, kakaoAppKey)
-
-        // Naver SDK 초기화
-        NaverIdLoginSDK.initialize(activity, naverClientId, naverClientSecret, naverAppName)
     }
 
     private fun requireActivity(): ComponentActivity =
@@ -86,33 +90,45 @@ actual object OAuthHandler {
         }
     }
 
-    private suspend fun loginWithNaver(): OAuthResult = suspendCancellableCoroutine { cont ->
+    private suspend fun loginWithNaver(): OAuthResult {
         val activity = requireActivity()
-        NaverIdLoginSDK.authenticate(activity, object : OAuthLoginCallback {
-            override fun onSuccess() {
-                val accessToken = NaverIdLoginSDK.getAccessToken()
-                val state = NaverIdLoginSDK.getState().toString()
-                if (accessToken != null) {
-                    cont.resume(
-                        OAuthResult.Success(
-                            provider = AuthProvider.NAVER,
-                            accessToken = accessToken,
-                            state = state
-                        )
-                    )
-                } else {
-                    cont.resume(OAuthResult.Error("네이버 토큰 획득 실패"))
-                }
-            }
+        val state = UUID.randomUUID().toString()
+        val url = "https://nid.naver.com/oauth2.0/authorize" +
+                "?client_id=$naverClientId" +
+                "&redirect_uri=$NAVER_REDIRECT_URI" +
+                "&response_type=code" +
+                "&state=$state"
 
-            override fun onFailure(httpStatus: Int, message: String) {
-                cont.resume(OAuthResult.Error("네이버 로그인 실패: $message"))
-            }
+        val deferred = CompletableDeferred<OAuthResult>()
+        pendingOAuthResult = deferred
 
-            override fun onError(errorCode: Int, message: String) {
-                cont.resume(OAuthResult.Error("네이버 로그인 오류: $message"))
-            }
-        })
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+        activity.startActivity(intent)
+
+        return deferred.await()
+    }
+
+    /**
+     * 서버 callback relay에서 돌아온 OAuth 딥링크 처리.
+     * URI 형식: com.onebite.app://oauth/naver?code=...&state=...
+     */
+    fun handleOAuthCallback(uri: Uri) {
+        val code = uri.getQueryParameter("code")
+        val state = uri.getQueryParameter("state")
+
+        if (code != null) {
+            pendingOAuthResult?.complete(
+                OAuthResult.Success(
+                    provider = AuthProvider.NAVER,
+                    authCode = code,
+                    state = state
+                )
+            )
+        } else {
+            val error = uri.getQueryParameter("error") ?: "인증 코드를 받지 못했습니다"
+            pendingOAuthResult?.complete(OAuthResult.Error(error))
+        }
+        pendingOAuthResult = null
     }
 
     private suspend fun loginWithGoogle(): OAuthResult {
@@ -140,8 +156,7 @@ actual object OAuthHandler {
     actual fun logout() {
         // Kakao 로그아웃
         UserApiClient.instance.logout { }
-        // Naver 로그아웃
-        NaverIdLoginSDK.logout()
+        // Naver — 서버 경유 웹 OAuth이므로 별도 SDK 로그아웃 불필요 (토큰 삭제로 처리)
     }
 
     actual fun isAvailable(provider: AuthProvider): Boolean {
