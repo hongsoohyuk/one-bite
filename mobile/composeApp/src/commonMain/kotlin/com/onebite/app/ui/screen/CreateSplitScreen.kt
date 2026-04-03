@@ -64,6 +64,19 @@ fun CreateSplitScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scrollState = rememberScrollState()
 
+    // 화면 진입 시 자동으로 GPS 좌표 캡처 (lat/lng 0.0 방지)
+    LaunchedEffect(Unit) {
+        isLocating = true
+        val granted = LocationProvider.requestPermission()
+        if (granted) {
+            val location = LocationProvider.getCurrentLocation()
+            if (location != null) {
+                currentLocation = location
+            }
+        }
+        isLocating = false
+    }
+
     // 폼 유효성 검사
     val totalPriceInt = totalPrice.toIntOrNull()
     val totalQtyInt = totalQty.toIntOrNull()

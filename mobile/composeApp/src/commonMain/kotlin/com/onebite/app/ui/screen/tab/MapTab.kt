@@ -6,7 +6,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -128,7 +127,7 @@ fun MapTab(
                 containerColor = MaterialTheme.colorScheme.surface
             ) {
                 Icon(
-                    Icons.Default.Refresh,
+                    Icons.Default.LocationOn,
                     contentDescription = "내 위치",
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(20.dp)
