@@ -1,13 +1,15 @@
 @import "tailwindcss";
 
 @theme {
-  --color-onebite: #FF6B35;
-  --color-onebite-dark: #E55A2B;
-  --color-onebite-light: #FFF0E8;
-  --color-onebite-50: #FFF8F3;
+  --color-onebite: #D4916E;
+  --color-onebite-dark: #B87A5A;
+  --color-onebite-light: #F0DDD2;
+  --color-onebite-50: #F3EBE2;
   --color-warm-black: #1A1A1A;
   --color-warm-gray: #6B6B6B;
-  --color-warm-light: #F7F5F3;
+  --color-warm-light: #F3EBE2;
+  --color-accent-blue: #C4CFDE;
+  --color-accent-green: #D5DCBA;
   --font-display: "Noto Sans KR", sans-serif;
 }
 
