@@ -4,9 +4,12 @@
 
 | 항목 | 기술 | 비고 |
 |------|------|------|
+| 클라우드 | Oracle Cloud (Always Free Tier) | ARM A1 Flex |
+| IaC | Terraform (OCI Provider) | |
 | 컨테이너 | Docker + Docker Compose | |
 | DB | PostgreSQL 16 + PostGIS 3.4 | 위치 기반 쿼리 |
 | 런타임 | Eclipse Temurin JDK/JRE 17 | 멀티스테이지 빌드 |
+| OS | Oracle Linux 9 (aarch64) | |
 
 ## 디렉토리 구조
 
@@ -16,10 +19,58 @@
 ├── docker-compose.prod.yml     # 운영 환경
 ├── Makefile                    # 편의 명령어
 ├── infra/
-│   └── .env.example            # 환경변수 템플릿
+│   ├── CLAUDE.md               # 이 문서
+│   ├── .env.example            # 환경변수 템플릿
+│   └── terraform/
+│       ├── main.tf             # OCI 리소스 (VCN, Subnet, Instance)
+│       ├── variables.tf        # 변수 정의
+│       ├── outputs.tf          # 출력값
+│       ├── user-data.sh        # Oracle Linux 9 초기화 스크립트
+│       └── .gitignore
 └── server/
     ├── Dockerfile              # 멀티스테이지 빌드
     └── .dockerignore
+```
+
+## Oracle Cloud Always Free Tier 스펙
+
+| 리소스 | 무료 제공량 | 사용량 |
+|--------|------------|--------|
+| ARM A1 Compute | 4 OCPU + 24GB RAM | 2 OCPU + 12GB RAM |
+| Block Storage | 200GB | 50GB boot volume |
+| Outbound Data | 10TB/월 | 최소 |
+| Load Balancer | 1개 (10Mbps) | 미사용 |
+
+## Terraform 사용법
+
+### 사전 준비
+
+1. [OCI 계정 생성](https://cloud.oracle.com) (Always Free)
+2. OCI CLI 설정 또는 API Key 생성:
+   - OCI 콘솔 > Identity > Users > API Keys > Add API Key
+   - 다운로드된 PEM 키를 `~/.oci/oci_api_key.pem`에 저장
+3. `terraform.tfvars` 작성 (variables.tf 참고)
+
+### 실행
+
+```bash
+cd infra/terraform
+terraform init          # OCI provider 다운로드
+terraform plan          # 변경사항 확인
+terraform apply         # 리소스 생성
+terraform destroy       # 리소스 삭제
+```
+
+### 주요 변수 (terraform.tfvars)
+
+```hcl
+tenancy_ocid     = "ocid1.tenancy.oc1..xxx"
+user_ocid        = "ocid1.user.oc1..xxx"
+compartment_ocid = "ocid1.tenancy.oc1..xxx"  # root compartment = tenancy
+api_fingerprint  = "xx:xx:xx:..."
+ssh_public_key   = "ssh-ed25519 AAAA..."
+my_ip            = "1.2.3.4/32"
+region           = "ap-chuncheon-1"
 ```
 
 ## 실행 명령어 (Makefile)
@@ -69,10 +120,17 @@ APPLE_CLIENT_ID
 ## 운영 배포 절차
 
 ```bash
-cp infra/.env.example infra/.env   # 환경변수 설정
-# infra/.env 편집 (실제 크레덴셜 입력)
-make prod                           # 운영 기동
-make logs                           # 로그 모니터링
+# 1. 인프라 프로비저닝 (최초 1회)
+cd infra/terraform
+terraform init && terraform apply
+
+# 2. 서버 접속
+ssh opc@<public_ip>
+
+# 3. 앱 배포
+cd /opt/onebite
+# docker-compose.prod.yml + .env 배치
+docker compose -f docker-compose.prod.yml up -d
 ```
 
 ## 구현 상태
@@ -84,6 +142,7 @@ make logs                           # 로그 모니터링
 - [x] Makefile 편의 명령어
 - [x] 환경변수 템플릿 (.env.example)
 - [x] Spring 프로필 분리 (default/prod)
+- [x] OCI Terraform (VCN, Subnet, Security List, ARM A1 Instance)
 
 ### TODO
 - [ ] **CI/CD 파이프라인** — GitHub Actions (빌드, 테스트, 이미지 푸시, 배포)
@@ -91,7 +150,4 @@ make logs                           # 로그 모니터링
 - [ ] **SSL/TLS** — Let's Encrypt 인증서 자동 갱신
 - [ ] **모니터링** — Prometheus + Grafana (메트릭 수집/대시보드)
 - [ ] **로깅** — ELK 또는 Loki (중앙 로그 수집)
-- [ ] **DB 마이그레이션** — Flyway 또는 Liquibase 스크립트
-- [ ] **시크릿 관리** — AWS Secrets Manager / Vault (하드코딩 제거)
-- [ ] **클라우드 배포** — AWS ECS/EKS 또는 GCP Cloud Run
 - [ ] **백업** — PostgreSQL 자동 백업 + 복원 절차
