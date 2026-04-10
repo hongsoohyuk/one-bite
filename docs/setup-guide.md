@@ -51,12 +51,12 @@ GOOGLE_CLIENT_ID_ANDROID=구글_안드로이드_클라이언트_ID
 ## 4. EC2 서버 관리
 
 ### 인스턴스 정보
-- IP: `3.39.156.85`
+- IP: `43.200.206.239`
 - 리전: ap-northeast-2 (서울)
 
 ### SSH 접속
 ```bash
-ssh -i ~/.ssh/your-key.pem ec2-user@3.39.156.85
+ssh -i ~/.ssh/your-key.pem ec2-user@43.200.206.239
 ```
 
 ### 서버 중지 (비용 절약)
@@ -69,7 +69,7 @@ sudo shutdown -h now
 또는 로컬에서 AWS CLI로:
 ```bash
 # 인스턴스 ID 확인
-aws ec2 describe-instances --filters "Name=ip-address,Values=3.39.156.85" --query "Reservations[].Instances[].InstanceId" --output text
+aws ec2 describe-instances --filters "Name=ip-address,Values=43.200.206.239" --query "Reservations[].Instances[].InstanceId" --output text
 
 # 중지 (Stop) — EBS 비용만 소량 발생, 다시 시작 가능
 aws ec2 stop-instances --instance-ids <인스턴스ID>
