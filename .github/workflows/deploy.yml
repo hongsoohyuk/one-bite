@@ -44,11 +44,20 @@ jobs:
             type=sha,prefix=
             type=raw,value=latest
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
           context: ./server
           push: true
+          platforms: linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
@@ -81,8 +90,8 @@ jobs:
               "cd /opt/onebite",
               "sudo -u ec2-user git pull origin main",
               "echo \"${{ secrets.GITHUB_TOKEN }}\" | sudo -u ec2-user docker login ghcr.io -u ${{ github.actor }} --password-stdin",
-              "sudo -u ec2-user docker compose -f docker-compose.prod.yml pull server",
-              "sudo -u ec2-user docker compose -f docker-compose.prod.yml up -d",
+              "sudo -u ec2-user docker compose --env-file ./infra/.env -f docker-compose.prod.yml pull server",
+              "sudo -u ec2-user docker compose --env-file ./infra/.env -f docker-compose.prod.yml up -d",
               "sudo -u ec2-user docker image prune -f"
             ]' \
             --output text \
