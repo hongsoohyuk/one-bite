@@ -1,11 +1,11 @@
 #!/bin/bash
 set -euxo pipefail
 
-# --- Docker ---
+# --- Packages ---
 dnf update -y
-dnf install -y docker git
-systemctl enable docker
-systemctl start docker
+dnf install -y docker git amazon-ssm-agent
+systemctl enable docker amazon-ssm-agent
+systemctl start docker amazon-ssm-agent
 
 # Docker Compose plugin
 mkdir -p /usr/local/lib/docker/cli-plugins

@@ -23,3 +23,8 @@ output "private_key" {
   value       = tls_private_key.onebite.private_key_openssh
   sensitive   = true
 }
+
+output "github_actions_role_arn" {
+  description = "IAM role ARN for GitHub Actions (OIDC-assumed)"
+  value       = aws_iam_role.github_actions.arn
+}

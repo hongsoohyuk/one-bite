@@ -117,6 +117,111 @@ resource "aws_key_pair" "onebite" {
   }
 }
 
+# --- IAM: EC2 Instance Role (SSM access) ---
+data "aws_iam_policy_document" "ec2_assume_role" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+    principals {
+      type        = "Service"
+      identifiers = ["ec2.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "ec2_ssm" {
+  name               = "${var.project_name}-ec2-ssm-role"
+  assume_role_policy = data.aws_iam_policy_document.ec2_assume_role.json
+
+  tags = {
+    Name    = "${var.project_name}-ec2-ssm-role"
+    Project = var.project_name
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "ec2_ssm" {
+  role       = aws_iam_role.ec2_ssm.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+resource "aws_iam_instance_profile" "ec2_ssm" {
+  name = "${var.project_name}-ec2-ssm-profile"
+  role = aws_iam_role.ec2_ssm.name
+
+  tags = {
+    Name    = "${var.project_name}-ec2-ssm-profile"
+    Project = var.project_name
+  }
+}
+
+# --- GitHub Actions OIDC Provider ---
+resource "aws_iam_openid_connect_provider" "github" {
+  url            = "https://token.actions.githubusercontent.com"
+  client_id_list = ["sts.amazonaws.com"]
+  thumbprint_list = [
+    "6938fd4d98bab03faadb97b34396831e3780aea1",
+    "1c58a3a8518e8759bf075b76b750d4f2df264fcd",
+  ]
+
+  tags = {
+    Name    = "${var.project_name}-github-oidc"
+    Project = var.project_name
+  }
+}
+
+# --- GitHub Actions IAM Role (OIDC-assumed) ---
+data "aws_iam_policy_document" "github_actions_assume" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+
+    principals {
+      type        = "Federated"
+      identifiers = [aws_iam_openid_connect_provider.github.arn]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "token.actions.githubusercontent.com:aud"
+      values   = ["sts.amazonaws.com"]
+    }
+
+    condition {
+      test     = "StringLike"
+      variable = "token.actions.githubusercontent.com:sub"
+      values   = ["repo:hongsoohyuk/one-bite:*"]
+    }
+  }
+}
+
+resource "aws_iam_role" "github_actions" {
+  name               = "${var.project_name}-github-actions-role"
+  assume_role_policy = data.aws_iam_policy_document.github_actions_assume.json
+
+  tags = {
+    Name    = "${var.project_name}-github-actions-role"
+    Project = var.project_name
+  }
+}
+
+data "aws_iam_policy_document" "github_actions_ssm" {
+  statement {
+    effect = "Allow"
+    actions = [
+      "ssm:SendCommand",
+      "ssm:GetCommandInvocation",
+      "ssm:ListCommandInvocations",
+    ]
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_role_policy" "github_actions_ssm" {
+  name   = "${var.project_name}-github-actions-ssm"
+  role   = aws_iam_role.github_actions.id
+  policy = data.aws_iam_policy_document.github_actions_ssm.json
+}
+
 # --- EC2 Instance ---
 resource "aws_instance" "onebite" {
   ami                    = data.aws_ami.al2023.id
@@ -124,6 +229,7 @@ resource "aws_instance" "onebite" {
   key_name               = aws_key_pair.onebite.key_name
   vpc_security_group_ids = [aws_security_group.onebite.id]
   subnet_id              = data.aws_subnets.default.ids[0]
+  iam_instance_profile   = aws_iam_instance_profile.ec2_ssm.name
 
   user_data = file("${path.module}/user-data.sh")
 
