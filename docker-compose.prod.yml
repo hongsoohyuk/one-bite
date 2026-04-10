@@ -23,9 +23,7 @@ services:
           cpus: "0.5"
 
   server:
-    build:
-      context: ./server
-      dockerfile: Dockerfile
+    image: ghcr.io/hongsoohyuk/one-bite/server:latest
     container_name: onebite-server
     restart: always
     expose:
