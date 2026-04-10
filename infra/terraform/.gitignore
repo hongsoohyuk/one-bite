@@ -4,3 +4,4 @@
 *.tfvars
 .terraform.lock.hcl
 *.pem
+*.log
