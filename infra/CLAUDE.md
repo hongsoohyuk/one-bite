@@ -201,6 +201,82 @@ sudo chmod 600 /opt/onebite/infra/.env
 ### 일상 배포
 GitHub Actions가 main 브랜치 푸시 시 자동으로 배포합니다. 수동 롤아웃은 Actions 탭에서 `Deploy to AWS` 워크플로우를 재실행.
 
+## 현재 임시 조치 / 하드코딩 (프로덕션 전환 시 정리 대상)
+
+도메인이 없는 상태에서 배포 파이프라인을 우선 검증하기 위해 아래 항목들이 임시로 들어가 있습니다.
+
+### 1) nginx HTTP-only
+- `infra/nginx/nginx.conf`가 443 server 블록과 80→443 redirect를 제거한 임시 버전
+- 원본(SSL + redirect)은 git history 커밋 `be37a2d` 이전(예: `4cf983d`)에서 확인 가능
+- 복원 시: 443 블록 복원 + 80의 location `/`을 `return 301 https://$host$request_uri;`로 변경. `/.well-known/acme-challenge/` location은 유지
+
+### 2) `/opt/onebite/infra/.env`의 OAuth 값이 전부 dummy
+- 영향 키: `KAKAO_CLIENT_ID`, `KAKAO_CLIENT_SECRET`, `KAKAO_REDIRECT_URI`, `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`, `APPLE_CLIENT_ID`
+- `DB_*`, `JWT_*`는 실제 값이라 서버는 정상 기동하지만, OAuth 로그인은 동작하지 않음
+- 실제 값은 각 개발자 콘솔(카카오/네이버/Google GCP/Apple Developer)에만 있고, 이전 AWS 인스턴스의 .env는 OCI 이주 때 소실됨
+
+### 3) `deploy.yml`의 EC2 인스턴스 ID 하드코딩
+- `.github/workflows/deploy.yml`의 `env.EC2_INSTANCE_ID: i-00fedbf43668c090b`
+- 인스턴스를 재생성하면 이 값도 같이 수정해야 함
+- 대안: `aws_iam_role_policy.github_actions_ssm`에 `ec2:DescribeInstances` 권한 추가 + deploy 스크립트에서 태그(`Name=onebite-server`) 기반 조회
+
+### 4) 모바일 클라이언트 / 문서의 서버 IP 하드코딩
+- `http://43.200.206.239:8080`이 직접 박혀 있는 5개 파일:
+  - `mobile/composeApp/src/commonMain/kotlin/com/onebite/app/data/api/OneBiteApi.kt:33`
+  - `mobile/composeApp/src/androidMain/kotlin/com/onebite/app/auth/OAuthHandler.android.kt:29`
+  - `mobile/composeApp/src/iosMain/kotlin/com/onebite/app/auth/OAuthHandler.ios.kt:25`
+  - `mobile/iosApp/iosApp/Info.plist` (NSExceptionDomains 키 `43.200.206.239`)
+  - `docs/setup-guide.md`
+- 도메인 전환 시 일괄 수정 + 모바일 앱 재빌드 필요
+
+### 5) AWS Security Group의 SSH 22번은 로컬 IP 전용
+- `main.tf`의 SG ingress SSH 규칙이 `var.my_ip = 59.10.176.51/32`로 제한
+- 로컬 IP가 바뀌면 `terraform.tfvars`의 `my_ip` 갱신 후 `terraform apply`
+- GitHub Actions 배포는 이 SSH를 거치지 않고 SSM으로 통신하므로 영향 없음
+
+## 도메인 준비 시 체크리스트
+
+도메인을 확보한 시점에 아래 순서대로 진행하면 됩니다.
+
+### 1) DNS
+- [ ] 도메인(또는 서브도메인)의 A 레코드를 Elastic IP `43.200.206.239`로 지정
+- [ ] 전파 확인: `dig +short api.example.com`
+
+### 2) nginx.conf 복원
+- [ ] `infra/nginx/nginx.conf`에 443 server 블록 추가 (SSL 종단, proxy → `spring_boot`)
+- [ ] 80 server 블록의 location `/`을 HTTPS redirect로 변경
+- [ ] `/.well-known/acme-challenge/` location은 유지 (certbot 갱신용)
+- [ ] 커밋은 **SSL 발급 이전에 push하지 말 것** (cert 파일 없이 443 서버 블록이 먼저 올라가면 nginx 기동 실패)
+
+### 3) Let's Encrypt 발급
+- [ ] `ssh`(또는 `aws ssm start-session`)로 접속
+- [ ] `cd /opt/onebite && sudo -u ec2-user ./infra/scripts/init-ssl.sh <your-domain>`
+- [ ] 이후 nginx.conf 복원본을 git push → deploy 워크플로우로 반영
+- [ ] `curl -I https://<domain>/actuator/health` → `200 OK` 확인
+
+### 4) OAuth 콘솔 업데이트
+- [ ] 카카오: developers.kakao.com → 내 애플리케이션 → 카카오 로그인 → Redirect URI에 `https://<domain>/api/auth/kakao/callback` 추가
+- [ ] 네이버: developers.naver.com → 애플리케이션 → 서비스 URL / Callback URL 업데이트
+- [ ] Google: console.cloud.google.com → APIs & Services → Credentials → OAuth client → Authorized redirect URIs
+- [ ] Apple: developer.apple.com → Identifiers → Services IDs → Domains and Subdomains / Return URLs
+
+### 5) `infra/.env` 업데이트 + 재배포
+- [ ] 각 콘솔에서 실제 `CLIENT_SECRET` 복사 → 로컬 `infra/.env`에 반영 (`KAKAO_CLIENT_SECRET`, `NAVER_CLIENT_SECRET`, `GOOGLE_CLIENT_SECRET`)
+- [ ] `KAKAO_REDIRECT_URI`, `GOOGLE_REDIRECT_URI`를 `https://<domain>/...`로 변경
+- [ ] `scp -i infra/terraform/onebite-key.pem infra/.env ec2-user@43.200.206.239:/tmp/onebite.env`
+- [ ] 서버에서 `sudo mv /tmp/onebite.env /opt/onebite/infra/.env && sudo chown ec2-user:ec2-user /opt/onebite/infra/.env && sudo chmod 600 /opt/onebite/infra/.env`
+- [ ] `sudo -u ec2-user docker compose --env-file ./infra/.env -f docker-compose.prod.yml up -d --force-recreate server`
+
+### 6) 모바일 클라이언트 base URL 전환
+- [ ] 위 "모바일 클라이언트 / 문서의 서버 IP 하드코딩" 섹션의 5개 파일을 `https://<domain>` (포트 없음)으로 일괄 수정
+- [ ] iOS `Info.plist`의 `NSExceptionDomains` 키를 제거하거나, 도메인으로 교체 (HTTPS라면 ATS exception 자체가 불필요)
+- [ ] Android/iOS 앱 재빌드 + 배포
+
+### 7) 검증
+- [ ] `curl https://<domain>/actuator/health` → `{"status":"UP"}`
+- [ ] 모바일 앱에서 카카오/네이버/Google/Apple 로그인 각각 실행
+- [ ] JWT 발급 후 `/api/splits` 등 인증 요구 엔드포인트 호출
+
 ## 구현 상태
 
 ### 완료
