@@ -1,0 +1,37 @@
+#!/bin/bash
+# Let's Encrypt 초기 SSL 인증서 발급
+# 사용법: ./init-ssl.sh your-domain.com your-email@example.com
+
+set -e
+
+DOMAIN=${1:?"도메인을 입력하세요 (예: api.onebite.app)"}
+EMAIL=${2:?"이메일을 입력하세요 (예: admin@onebite.app)"}
+
+echo "=== One Bite SSL 초기 설정 ==="
+echo "도메인: $DOMAIN"
+echo "이메일: $EMAIL"
+
+# 1. 임시 self-signed 인증서 생성 (Nginx 시작용)
+echo ">> 임시 인증서 생성..."
+mkdir -p ./certbot/conf/live/onebite
+openssl req -x509 -nodes -days 1 -newkey rsa:2048 \
+  -keyout ./certbot/conf/live/onebite/privkey.pem \
+  -out ./certbot/conf/live/onebite/fullchain.pem \
+  -subj "/CN=$DOMAIN"
+
+# 2. Nginx 시작 (ACME challenge 응답용)
+echo ">> Nginx 시작..."
+docker compose -f docker-compose.prod.yml up -d nginx
+
+# 3. Let's Encrypt 인증서 발급
+echo ">> Let's Encrypt 인증서 발급..."
+docker compose -f docker-compose.prod.yml run --rm certbot certonly \
+  --webroot --webroot-path=/var/www/certbot \
+  --email "$EMAIL" --agree-tos --no-eff-email \
+  -d "$DOMAIN"
+
+# 4. Nginx 재시작 (실제 인증서 적용)
+echo ">> Nginx 재시작..."
+docker compose -f docker-compose.prod.yml exec nginx nginx -s reload
+
+echo "=== SSL 설정 완료! ==="
