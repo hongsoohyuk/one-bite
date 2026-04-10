@@ -1,12 +1,15 @@
 package com.onebite.app.ui.screen
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,6 +22,8 @@ import com.onebite.app.data.api.OneBiteApi
 import com.onebite.app.data.model.CreateSplitRequest
 import com.onebite.app.location.DeviceLocation
 import com.onebite.app.location.LocationProvider
+import com.onebite.app.media.ImagePicker
+import com.onebite.app.media.PickedImage
 import com.onebite.app.ui.component.formatPrice
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -53,6 +58,9 @@ fun CreateSplitScreen(
     var totalQty by remember { mutableStateOf("") }
     var splitCount by remember { mutableStateOf("") }
     var address by remember { mutableStateOf("") }
+
+    var pickedImage by remember { mutableStateOf<PickedImage?>(null) }
+    var showImageMenu by remember { mutableStateOf(false) }
 
     var currentLocation by remember { mutableStateOf<DeviceLocation?>(null) }
     var isLocating by remember { mutableStateOf(false) }
@@ -119,11 +127,12 @@ fun CreateSplitScreen(
         ) {
             Spacer(modifier = Modifier.height(8.dp))
 
-            // 사진 첨부 플레이스홀더
+            // 사진 첨부
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(160.dp),
+                    .height(180.dp)
+                    .clickable { showImageMenu = true },
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant
                 )
@@ -132,19 +141,93 @@ fun CreateSplitScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = "사진 추가",
-                            fontSize = 16.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = "(카메라/갤러리 연동 예정)",
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.outline
-                        )
+                    if (pickedImage != null) {
+                        // 선택된 이미지 정보 표시
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                Icons.Default.Add,
+                                contentDescription = null,
+                                modifier = Modifier.size(48.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = pickedImage!!.fileName,
+                                fontSize = 14.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = "${pickedImage!!.bytes.size / 1024}KB · 탭하여 변경",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.outline
+                            )
+                        }
+                    } else {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                Icons.Default.Add,
+                                contentDescription = null,
+                                modifier = Modifier.size(40.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "사진 추가",
+                                fontSize = 16.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = "탭하여 카메라/갤러리 선택",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.outline
+                            )
+                        }
                     }
                 }
+            }
+
+            // 이미지 선택 메뉴
+            if (showImageMenu) {
+                AlertDialog(
+                    onDismissRequest = { showImageMenu = false },
+                    title = { Text("사진 추가") },
+                    text = {
+                        Column {
+                            TextButton(
+                                onClick = {
+                                    showImageMenu = false
+                                    coroutineScope.launch {
+                                        pickedImage = ImagePicker.captureFromCamera()
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(Icons.Default.Add, contentDescription = null)
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text("카메라로 촬영")
+                            }
+                            TextButton(
+                                onClick = {
+                                    showImageMenu = false
+                                    coroutineScope.launch {
+                                        pickedImage = ImagePicker.pickFromGallery()
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(Icons.Default.Share, contentDescription = null)
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text("갤러리에서 선택")
+                            }
+                        }
+                    },
+                    confirmButton = {},
+                    dismissButton = {
+                        TextButton(onClick = { showImageMenu = false }) {
+                            Text("취소")
+                        }
+                    }
+                )
             }
 
             // 상품명
