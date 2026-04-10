@@ -8,21 +8,27 @@ import org.springframework.web.bind.annotation.*
 class AuthController(
     private val authService: AuthService
 ) {
-    // GET /api/auth/callback/{provider} — OAuth redirect relay (iOS 웹 OAuth용)
-    // 카카오 등에서 리다이렉트 → 커스텀 스킴으로 앱에 전달
+    // GET /api/auth/callback/{provider} — OAuth callback (iOS 웹 OAuth용)
+    // 카카오 등에서 리다이렉트 → 서버에서 토큰 교환 → JWT 발급 → 딥링크로 앱에 전달
     @GetMapping("/callback/{provider}")
     fun oauthCallback(
         @PathVariable provider: String,
         @RequestParam code: String?,
         @RequestParam state: String?,
+        @RequestParam error: String?,
         response: HttpServletResponse
     ) {
-        val scheme = "com.onebite.app"
-        val params = buildList {
-            code?.let { add("code=$it") }
-            state?.let { add("state=$it") }
-        }.joinToString("&")
-        response.sendRedirect("$scheme://oauth/$provider?$params")
+        val scheme = "onebite://auth/callback"
+        if (error != null || code == null) {
+            response.sendRedirect("$scheme?error=${error ?: "no_code"}")
+            return
+        }
+        try {
+            val authResponse = authService.oauthCallbackLogin(provider, code, state)
+            response.sendRedirect("$scheme?token=${authResponse.token}&userId=${authResponse.userId}&isNewUser=${authResponse.isNewUser}")
+        } catch (e: Exception) {
+            response.sendRedirect("$scheme?error=${java.net.URLEncoder.encode(e.message ?: "login_failed", "UTF-8")}")
+        }
     }
 
     // POST /api/auth/kakao — 카카오 로그인 (인가코드 or 액세스토큰)

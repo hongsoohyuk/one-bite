@@ -53,6 +53,15 @@ class AuthService(
         return loginOrRegister(AuthProvider.APPLE, userInfo)
     }
 
+    // OAuth callback 로그인 (iOS 웹 OAuth용 — 인가코드 → 토큰 교환 → JWT 발급)
+    fun oauthCallbackLogin(provider: String, code: String, state: String?): AuthResponse =
+        when (provider.lowercase()) {
+            "kakao" -> kakaoLogin(code)
+            "naver" -> naverLogin(code, state ?: "")
+            "google" -> googleLogin(code)
+            else -> throw IllegalArgumentException("지원하지 않는 OAuth 프로바이더: $provider")
+        }
+
     // 공통: 기존 유저 조회 or 신규 가입 → JWT 발급
     private fun loginOrRegister(provider: AuthProvider, userInfo: SocialUserInfo): AuthResponse {
         var isNewUser = false
