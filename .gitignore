@@ -1,3 +1,7 @@
 .claude/skills/git-commit-workflow/SKILL.md
 .serena/cache/
 .serena/project.local.yml
+
+# Environment secrets
+*.env
+!*.env.example
