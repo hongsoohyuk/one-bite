@@ -9,25 +9,31 @@ vi.mock('../features/splits/queries', () => ({ useCreateSplit: vi.fn() }));
 vi.mock('../features/upload/imagePicker', () => ({ pickImage: vi.fn() }));
 vi.mock('../features/upload/uploadImage', () => ({ uploadImage: vi.fn() }));
 
-// LocationPicker 는 카카오 SDK 의존 → 검색 결과 1건 고르는 동작을 stub 으로 노출.
-// "장소선택" 버튼: 코스트코 양재점(장소명 + 좌표) 선택을 시뮬레이션.
+// LocationPicker 는 카카오 SDK 의존 → 점포 선택/지도 불가를 stub 버튼으로 노출.
+// "장소선택": 코스트코 양재점(점포명+도로명+좌표) 선택. "지도불가": SDK 폴백(onUnavailable).
 vi.mock('../features/map/LocationPicker', () => ({
   LocationPicker: ({
-    onPlaceSelect,
-    onCoordsChange,
+    onSelect,
+    onUnavailable,
   }: {
-    onPlaceSelect: (p: { placeName: string; coords: { lat: number; lng: number } }) => void;
-    onCoordsChange: (c: { lat: number; lng: number }) => void;
+    onSelect: (
+      p: { placeName: string; roadAddress: string; coords: { lat: number; lng: number } } | null,
+    ) => void;
+    onUnavailable?: () => void;
   }) => (
     <div>
       <button
         onClick={() =>
-          onPlaceSelect({ placeName: '코스트코 양재점', coords: { lat: 37.47, lng: 127.04 } })
+          onSelect({
+            placeName: '코스트코 양재점',
+            roadAddress: '서울 서초구 양재대로 79',
+            coords: { lat: 37.47, lng: 127.04 },
+          })
         }
       >
         장소선택
       </button>
-      <button onClick={() => onCoordsChange({ lat: 37.48, lng: 127.05 })}>핀이동</button>
+      <button onClick={() => onUnavailable?.()}>지도불가</button>
     </div>
   ),
 }));
@@ -76,10 +82,55 @@ describe('CreateSplit', () => {
     expect(screen.getByText('₩10,000')).toBeInTheDocument();
   });
 
-  it('상세 위치만 입력해도 제출 가능 (장소 미선택 시 GPS 좌표 폴백)', async () => {
+  it('점포 미선택 + 상세만 입력 시 제출 비활성 (실제 점포 선택 강제)', async () => {
     renderCreate();
     await fillProductFields();
     await userEvent.type(screen.getByLabelText('상세 위치'), '3층 KFC 앞');
+    expect(screen.getByRole('button', { name: '내 반띵 올리기' })).toBeDisabled();
+  });
+
+  it('점포만 선택해도 제출 가능 (좌표는 선택 점포)', async () => {
+    renderCreate();
+    await fillProductFields();
+    await userEvent.click(screen.getByRole('button', { name: '장소선택' }));
+    const submit = screen.getByRole('button', { name: '내 반띵 올리기' });
+    expect(submit).toBeEnabled();
+    await userEvent.click(submit);
+    expect(mutate.mock.calls[0][0]).toEqual({
+      productName: '두쫀쿠',
+      totalPrice: 20000,
+      totalQty: 4,
+      splitCount: 2,
+      category: 'OTHER',
+      latitude: 37.47,
+      longitude: 127.04,
+      address: '코스트코 양재점',
+    });
+  });
+
+  it('점포 선택 + 상세 위치 → "점포명 · 상세" 형식 address, 좌표는 선택 점포', async () => {
+    renderCreate();
+    await fillProductFields();
+    await userEvent.click(screen.getByRole('button', { name: '장소선택' }));
+    await userEvent.type(screen.getByLabelText('상세 위치'), '아이파크몰 4층 스타벅스 정면');
+    await userEvent.click(screen.getByRole('button', { name: '내 반띵 올리기' }));
+    expect(mutate.mock.calls[0][0]).toEqual({
+      productName: '두쫀쿠',
+      totalPrice: 20000,
+      totalQty: 4,
+      splitCount: 2,
+      category: 'OTHER',
+      latitude: 37.47,
+      longitude: 127.04,
+      address: '코스트코 양재점 · 아이파크몰 4층 스타벅스 정면',
+    });
+  });
+
+  it('지도 사용 불가 시 상세 위치만으로 제출 가능 (GPS 좌표 폴백)', async () => {
+    renderCreate();
+    await fillProductFields();
+    await userEvent.click(screen.getByRole('button', { name: '지도불가' }));
+    await userEvent.type(screen.getByLabelText('상세 위치'), '신용산역 2번 출구 골목 안쪽');
     const submit = screen.getByRole('button', { name: '내 반띵 올리기' });
     expect(submit).toBeEnabled();
     await userEvent.click(submit);
@@ -91,38 +142,7 @@ describe('CreateSplit', () => {
       category: 'OTHER',
       latitude: 37.5665,
       longitude: 126.978,
-      address: '3층 KFC 앞',
-    });
-  });
-
-  it('장소 선택 + 상세 위치 → "장소명 · 상세" 형식 address, 좌표는 선택 장소', async () => {
-    renderCreate();
-    await fillProductFields();
-    await userEvent.click(screen.getByRole('button', { name: '장소선택' }));
-    await userEvent.type(screen.getByLabelText('상세 위치'), '3층 KFC 앞');
-    await userEvent.click(screen.getByRole('button', { name: '내 반띵 올리기' }));
-    expect(mutate.mock.calls[0][0]).toEqual({
-      productName: '두쫀쿠',
-      totalPrice: 20000,
-      totalQty: 4,
-      splitCount: 2,
-      category: 'OTHER',
-      latitude: 37.47,
-      longitude: 127.04,
-      address: '코스트코 양재점 · 3층 KFC 앞',
-    });
-  });
-
-  it('핀 이동 시 좌표가 핀 위치로 갱신', async () => {
-    renderCreate();
-    await fillProductFields();
-    await userEvent.click(screen.getByRole('button', { name: '장소선택' }));
-    await userEvent.click(screen.getByRole('button', { name: '핀이동' }));
-    await userEvent.click(screen.getByRole('button', { name: '내 반띵 올리기' }));
-    expect(mutate.mock.calls[0][0]).toMatchObject({
-      latitude: 37.48,
-      longitude: 127.05,
-      address: '코스트코 양재점',
+      address: '신용산역 2번 출구 골목 안쪽',
     });
   });
 
@@ -138,7 +158,7 @@ describe('CreateSplit', () => {
     await waitFor(() => expect(uploadImageMock).toHaveBeenCalled());
 
     await fillProductFields();
-    await userEvent.type(screen.getByLabelText('상세 위치'), '3층 KFC 앞');
+    await userEvent.click(screen.getByRole('button', { name: '장소선택' }));
     await userEvent.click(screen.getByRole('button', { name: '내 반띵 올리기' }));
     expect(mutate.mock.calls[0][0]).toMatchObject({ imageUrl: 'https://s3/img.jpg' });
   });
