@@ -81,15 +81,20 @@ src/main/kotlin/com/onebite/server/
 │   ├── ReportController.kt  # POST /api/reports, POST/DELETE/GET /api/blocks
 │   ├── ReportService.kt
 │   └── ReportDto.kt
-└── chat/                    # 반띵 단위 그룹 채팅 도메인 (V8)
-    ├── ChatController.kt    # GET/POST /api/splits/{id}/chat/messages, POST .../read, GET .../unread
-    ├── ChatService.kt
-    ├── ChatMessage.kt / ChatReadState.kt / ChatRepository.kt
-    ├── ChatDto.kt / ChatEvents.kt
-    ├── ChatEventListener.kt # 새 메시지 → FCM 푸시 (AFTER_COMMIT)
-    ├── WebSocketConfig.kt   # STOMP 엔드포인트 /ws, 브로커 /topic/chats/{splitId}
-    ├── StompAuthChannelInterceptor.kt # CONNECT JWT 인증 + SUBSCRIBE 멤버십 인가
-    └── StompPrincipal.kt
+├── chat/                    # 반띵 단위 그룹 채팅 도메인 (V8)
+│   ├── ChatController.kt    # GET/POST /api/splits/{id}/chat/messages, POST .../read, GET .../unread
+│   ├── ChatService.kt
+│   ├── ChatMessage.kt / ChatReadState.kt / ChatRepository.kt
+│   ├── ChatDto.kt / ChatEvents.kt
+│   ├── ChatEventListener.kt # 새 메시지 → FCM 푸시 (AFTER_COMMIT)
+│   ├── WebSocketConfig.kt   # STOMP 엔드포인트 /ws, 브로커 /topic/chats/{splitId}
+│   ├── StompAuthChannelInterceptor.kt # CONNECT JWT 인증 + SUBSCRIBE 멤버십 인가
+│   └── StompPrincipal.kt
+└── ratelimit/               # 요청 속도 제한(보안 하드닝)
+    ├── RateLimitFilter.kt   # IP 토큰버킷, 429 + Retry-After, /api/auth 엄격 / 그 외 기본
+    ├── RateLimiter.kt       # 키(tier:IP)별 버킷 레지스트리 + idle 청소
+    ├── TokenBucket.kt       # 순수 토큰 버킷(시계 주입, 단위테스트)
+    └── RateLimitConfig.kt   # @Value 설정 + FilterRegistrationBean(HIGHEST_PRECEDENCE)
 ```
 
 ## API 엔드포인트
@@ -166,12 +171,12 @@ SecurityConfig 매칭 순서 주의: `/splits/my`와 `/splits/participated`는 `
 - [x] **Apple SignIn 서명 검증** — `AppleClient` 가 Apple JWKS(`/auth/keys`) 공개키로 RSA 서명 검증 + iss/aud 검사 + kid 캐시·로테이션 (단순 디코딩 아님)
 - [x] **OAuth redirect relay** — `GET/POST /api/auth/callback/{provider}` → 커스텀 스킴(`nthing://auth/callback`) 리다이렉트
 - [x] **dev-login** — `DevAuthController` (실 OAuth 없이 토큰 발급, dev 한정)
+- [x] **Rate limiting** — `ratelimit/` 도메인: IP 기준 인메모리 토큰 버킷. `/api/auth` 하위는 엄격(기본 20/분), 그 외 기본 120/분. 초과 시 429 + Retry-After. Spring Security 보다 먼저 실행(HIGHEST_PRECEDENCE). nginx `X-Real-IP` 기반 IP 판별. `nthing.ratelimit.*` 로 튜닝(`enabled=false` 면 비활성)
 
 ### TODO
 
 **다음 (안정성)**
 - [ ] 테스트 코드 확충
-- [ ] Rate limiting
 - [ ] Swagger/OpenAPI 문서 자동 생성
 
 **Phase 2**
