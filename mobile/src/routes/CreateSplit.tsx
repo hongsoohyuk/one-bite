@@ -6,9 +6,9 @@ import { AppBar } from '../shared/components/AppBar';
 import { TextField } from '../shared/components/TextField';
 import { Chip } from '../shared/components/Badge';
 import { Button } from '../shared/components/Button';
-import { LocationPicker } from '../features/map/LocationPicker';
+import { LocationPicker, type SelectedPlace } from '../features/map/LocationPicker';
 import { useCreateSplit } from '../features/splits/queries';
-import { useLocationStore, DEFAULT_COORDS, type Coords } from '../shared/stores/locationStore';
+import { useLocationStore, DEFAULT_COORDS } from '../shared/stores/locationStore';
 import { formatPrice } from '../shared/lib/format';
 import { pickImage } from '../features/upload/imagePicker';
 import { uploadImage } from '../features/upload/uploadImage';
@@ -29,10 +29,11 @@ export function CreateSplit() {
   const [totalPrice, setTotalPrice] = useState('');
   const [totalQty, setTotalQty] = useState('');
   const [splitCount, setSplitCount] = useState('');
-  // 만날 위치: 검색해 고른 장소명 + 핀 좌표(드래그/탭으로 미세조정) + 상세 위치 자유 입력.
-  // 좌표는 핀이 정함(없으면 현재 GPS 폴백). address 는 "<장소명> · <상세위치>" 로 합쳐 전송.
-  const [placeName, setPlaceName] = useState('');
-  const [pinCoords, setPinCoords] = useState<Coords | null>(null);
+  // 만날 위치: 검색해 고른 "실제 점포"(좌표는 점포 위치) + 상세 위치 자유 입력.
+  // 좌표는 점포가 정함(없으면 현재 GPS 폴백). address 는 "<점포명> · <상세위치>" 로 합쳐 전송.
+  // 점포 선택을 강제하되, 지도/SDK 불가 시엔 상세-only 등록을 허용(폴백).
+  const [selectedPlace, setSelectedPlace] = useState<SelectedPlace | null>(null);
+  const [mapUnavailable, setMapUnavailable] = useState(false);
   const [detail, setDetail] = useState('');
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -43,17 +44,19 @@ export function CreateSplit() {
   const countNum = Number(splitCount);
   const perPerson = priceNum > 0 && countNum >= 2 ? Math.floor(priceNum / countNum) : 0;
 
-  // 장소명 또는 상세 위치 중 하나라도 있으면 위치 입력으로 인정 (키 없을 때도 상세만으로 등록 가능)
-  const placeTrim = placeName.trim();
+  // 점포명(검색 선택) + 상세 위치를 "<점포명> · <상세위치>" 로 합쳐 전송.
   const detailTrim = detail.trim();
-  const address = [placeTrim, detailTrim].filter(Boolean).join(' · ');
+  const address = [selectedPlace?.placeName, detailTrim].filter(Boolean).join(' · ');
+
+  // 실제 점포를 골랐으면 OK. 지도 사용 불가 시엔 상세만 채워도 등록 허용(폴백).
+  const locationOk = selectedPlace != null || (mapUnavailable && detailTrim !== '');
 
   const canSubmit =
     productName.trim() !== '' &&
     priceNum >= 1 &&
     qtyNum >= 1 &&
     countNum >= 2 &&
-    address !== '' &&
+    locationOk &&
     !uploading &&
     !create.isPending;
 
@@ -75,7 +78,7 @@ export function CreateSplit() {
   };
 
   const onSubmit = () => {
-    const coords = pinCoords ?? gpsCoords;
+    const coords = selectedPlace?.coords ?? gpsCoords;
     create.mutate(
       {
         productName: productName.trim(),
@@ -167,19 +170,17 @@ export function CreateSplit() {
             supportingText="최소 2명"
           />
           <LocationPicker
-            initialCenter={gpsCoords}
-            placeName={placeName}
-            onPlaceSelect={({ placeName: name, coords }) => {
-              setPlaceName(name);
-              setPinCoords(coords);
-            }}
-            onCoordsChange={setPinCoords}
+            center={gpsCoords}
+            selected={selectedPlace}
+            onSelect={setSelectedPlace}
+            onUnavailable={() => setMapUnavailable(true)}
           />
           <TextField
             label={t('create.detailLabel')}
             value={detail}
             onChange={setDetail}
             placeholder={t('create.detailPlaceholder')}
+            supportingText={t('create.detailSupport')}
           />
 
           {/* 인당 가격 미리보기 — Card 대신 plain div (brand-surface 배경 충돌 회피) */}

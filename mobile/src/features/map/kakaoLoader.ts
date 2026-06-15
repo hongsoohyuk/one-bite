@@ -1,7 +1,13 @@
 import { env } from '../../shared/lib/env';
 
 export type KakaoLatLng = { getLat: () => number; getLng: () => number };
-export type KakaoMapInstance = { setCenter: (latlng: KakaoLatLng) => void };
+export type KakaoLatLngBounds = { extend: (latlng: KakaoLatLng) => void };
+export type KakaoMapInstance = {
+  setCenter: (latlng: KakaoLatLng) => void;
+  getCenter: () => KakaoLatLng;
+  setLevel: (level: number) => void;
+  setBounds: (bounds: KakaoLatLngBounds) => void;
+};
 export type KakaoMarker = {
   setPosition: (latlng: KakaoLatLng) => void;
   setMap: (map: KakaoMapInstance | null) => void;
@@ -15,14 +21,27 @@ export type KakaoPlace = {
   place_name: string;
   address_name: string;
   road_address_name: string;
+  category_name?: string;
+  phone?: string;
+  /** location/sort 옵션을 줄 때만 채워지는 기준점까지 거리(미터, 문자열) */
+  distance?: string;
   x: string; // 경도(lng)
   y: string; // 위도(lat)
 };
 export type KakaoPlacesStatus = 'OK' | 'ZERO_RESULT' | 'ERROR';
+// keywordSearch 옵션: location(기준 좌표)+radius+sort 로 "현재 위치 주변" 검색을 만든다.
+export type KakaoPlacesSearchOptions = {
+  location?: KakaoLatLng;
+  radius?: number; // location 과 함께 쓰는 반경(미터, 0~20000)
+  sort?: 'distance' | 'accuracy';
+  size?: number; // 페이지당 결과 수(1~15)
+  page?: number;
+};
 export type KakaoPlacesService = {
   keywordSearch: (
     keyword: string,
     callback: (data: KakaoPlace[], status: KakaoPlacesStatus) => void,
+    options?: KakaoPlacesSearchOptions,
   ) => void;
 };
 
@@ -33,10 +52,12 @@ export type KakaoMaps = {
     options: { center: KakaoLatLng; level: number },
   ) => KakaoMapInstance;
   LatLng: new (lat: number, lng: number) => KakaoLatLng;
+  LatLngBounds: new () => KakaoLatLngBounds;
   Marker: new (options: {
     position: KakaoLatLng;
     map?: KakaoMapInstance;
     draggable?: boolean;
+    zIndex?: number;
   }) => KakaoMarker;
   event: {
     addListener: (
@@ -48,6 +69,7 @@ export type KakaoMaps = {
   services: {
     Places: new () => KakaoPlacesService;
     Status: { OK: 'OK'; ZERO_RESULT: 'ZERO_RESULT'; ERROR: 'ERROR' };
+    SortBy: { ACCURACY: 'accuracy'; DISTANCE: 'distance' };
   };
 };
 
