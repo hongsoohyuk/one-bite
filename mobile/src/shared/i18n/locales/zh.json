@@ -171,6 +171,16 @@
     "report": "举报",
     "block": "屏蔽"
   },
+  "chat": {
+    "title": "聊天",
+    "open": "打开聊天",
+    "send": "发送",
+    "empty": "还没有消息，先打个招呼吧！",
+    "inputPlaceholder": "输入消息",
+    "loadError": "无法加载对话",
+    "connected": "实时",
+    "connecting": "连接中…"
+  },
   "report": {
     "title": "举报",
     "subtitle": "请选择举报原因",

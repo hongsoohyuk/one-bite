@@ -171,6 +171,16 @@
     "report": "신고하기",
     "block": "차단하기"
   },
+  "chat": {
+    "title": "채팅",
+    "open": "채팅 열기",
+    "send": "전송",
+    "empty": "아직 대화가 없어요. 먼저 인사해 보세요!",
+    "inputPlaceholder": "메시지 입력",
+    "loadError": "대화를 불러오지 못했어요",
+    "connected": "실시간",
+    "connecting": "연결 중…"
+  },
   "report": {
     "title": "신고하기",
     "subtitle": "신고 사유를 선택해 주세요",

@@ -176,6 +176,21 @@ export type BlockResponse = { id: number; blockedUserId: number };
 
 export type BlockedUsersResponse = { blockedUserIds: number[] };
 
+// ── Chat (서버 chat/ChatDto.kt 기준) ──
+export type ChatMessage = {
+  id: number;
+  splitId: number;
+  senderId: number;
+  senderNickname: string;
+  senderProfileImageUrl: string | null;
+  content: string;
+  createdAt: string;
+};
+
+export type SendMessageRequest = { content: string };
+
+export type ChatUnreadResponse = { count: number };
+
 // ── Device (서버 DeviceDto.kt 기준) ──
 export type DevicePlatform = 'IOS' | 'ANDROID';
 

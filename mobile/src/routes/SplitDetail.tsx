@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { MoreVertical } from 'lucide-react';
+import { MessageCircle, MoreVertical } from 'lucide-react';
 import { AppBar } from '../shared/components/AppBar';
 import { Button } from '../shared/components/Button';
 import { StatusBadge } from '../shared/components/Badge';
@@ -15,6 +15,7 @@ import {
   useLeaveSplit,
 } from '../features/splits/queries';
 import { NoShowSheet, type NoShowCounterpart } from '../features/splits/NoShowSheet';
+import { useChatUnread } from '../features/chat/queries';
 import { TrustBadge } from '../features/trust/TrustBadge';
 import { ReportSheet } from '../features/report/ReportSheet';
 import { useBlockUser } from '../features/report/queries';
@@ -47,6 +48,15 @@ export function SplitDetail() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [noShowOpen, setNoShowOpen] = useState(false);
+
+  // 채팅 진입점: 멤버(주최자/참여자)이고 상대가 있을 때만. (hook 은 조건부 호출 불가 → enabled 로 게이트)
+  const d = query.data;
+  const canChat =
+    !!userId &&
+    !!d &&
+    (d.author.id === userId || d.participants.some((p) => p.userId === userId)) &&
+    d.participants.length > 0;
+  const chatUnread = useChatUnread(splitId, canChat);
 
   if (query.isPending) {
     return (
@@ -119,51 +129,68 @@ export function SplitDetail() {
         title={t('detail.title')}
         onBack={() => navigate(-1)}
         actions={
-          showSafetyMenu ? (
-            <div className="relative">
-              <button
-                type="button"
-                aria-label={t('safety.menu')}
-                aria-haspopup="menu"
-                aria-expanded={menuOpen}
-                onClick={() => setMenuOpen((v) => !v)}
-                className="inline-flex size-10 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-900"
-              >
-                <MoreVertical className="size-5 text-gray-900 dark:text-gray-50" />
-              </button>
-              {menuOpen && (
-                <>
+          canChat || showSafetyMenu ? (
+            <div className="flex items-center">
+              {canChat && (
+                <button
+                  type="button"
+                  aria-label={t('chat.open')}
+                  onClick={() => navigate(`/splits/${splitId}/chat`)}
+                  className="relative inline-flex size-10 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-900"
+                >
+                  <MessageCircle className="size-5 text-gray-900 dark:text-gray-50" />
+                  {(chatUnread.data?.count ?? 0) > 0 && (
+                    <span className="absolute right-2 top-2 size-2 rounded-full bg-error" />
+                  )}
+                </button>
+              )}
+              {showSafetyMenu && (
+                <div className="relative">
                   <button
                     type="button"
-                    aria-label={t('common.close', { defaultValue: '닫기' })}
-                    className="fixed inset-0 z-40 cursor-default"
-                    onClick={() => setMenuOpen(false)}
-                  />
-                  <div
-                    role="menu"
-                    className="absolute right-0 z-50 mt-1 w-40 overflow-hidden rounded-md border border-gray-200 bg-white shadow-overlay dark:border-gray-700 dark:bg-gray-900"
+                    aria-label={t('safety.menu')}
+                    aria-haspopup="menu"
+                    aria-expanded={menuOpen}
+                    onClick={() => setMenuOpen((v) => !v)}
+                    className="inline-flex size-10 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-900"
                   >
-                    <button
-                      type="button"
-                      role="menuitem"
-                      onClick={() => {
-                        setMenuOpen(false);
-                        setReportOpen(true);
-                      }}
-                      className="block w-full px-4 py-3 text-left text-body text-gray-800 hover:bg-gray-50 dark:text-gray-100 dark:hover:bg-gray-800"
-                    >
-                      {t('safety.report')}
-                    </button>
-                    <button
-                      type="button"
-                      role="menuitem"
-                      onClick={handleBlock}
-                      className="block w-full px-4 py-3 text-left text-body text-error hover:bg-gray-50 dark:hover:bg-gray-800"
-                    >
-                      {t('safety.block')}
-                    </button>
-                  </div>
-                </>
+                    <MoreVertical className="size-5 text-gray-900 dark:text-gray-50" />
+                  </button>
+                  {menuOpen && (
+                    <>
+                      <button
+                        type="button"
+                        aria-label={t('common.close', { defaultValue: '닫기' })}
+                        className="fixed inset-0 z-40 cursor-default"
+                        onClick={() => setMenuOpen(false)}
+                      />
+                      <div
+                        role="menu"
+                        className="absolute right-0 z-50 mt-1 w-40 overflow-hidden rounded-md border border-gray-200 bg-white shadow-overlay dark:border-gray-700 dark:bg-gray-900"
+                      >
+                        <button
+                          type="button"
+                          role="menuitem"
+                          onClick={() => {
+                            setMenuOpen(false);
+                            setReportOpen(true);
+                          }}
+                          className="block w-full px-4 py-3 text-left text-body text-gray-800 hover:bg-gray-50 dark:text-gray-100 dark:hover:bg-gray-800"
+                        >
+                          {t('safety.report')}
+                        </button>
+                        <button
+                          type="button"
+                          role="menuitem"
+                          onClick={handleBlock}
+                          className="block w-full px-4 py-3 text-left text-body text-error hover:bg-gray-50 dark:hover:bg-gray-800"
+                        >
+                          {t('safety.block')}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
               )}
             </div>
           ) : undefined

@@ -171,6 +171,16 @@
     "report": "報告する",
     "block": "ブロックする"
   },
+  "chat": {
+    "title": "チャット",
+    "open": "チャットを開く",
+    "send": "送信",
+    "empty": "まだメッセージがありません。挨拶してみましょう！",
+    "inputPlaceholder": "メッセージを入力",
+    "loadError": "会話を読み込めませんでした",
+    "connected": "リアルタイム",
+    "connecting": "接続中…"
+  },
   "report": {
     "title": "報告する",
     "subtitle": "報告の理由を選んでください",

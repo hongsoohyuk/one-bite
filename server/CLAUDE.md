@@ -135,7 +135,7 @@ SecurityConfig 매칭 순서 주의: `/splits/my`와 `/splits/participated`는 `
 
 **Phase 2**
 - [x] 푸시 알림 서버 (FCM + APNs) — notification 도메인: Device(token upsert/unregister), DeviceLocationQuery, NotificationService(4종 알림), AFTER_COMMIT+@Async 이벤트 리스너 (모바일 연동 진행 중)
-- [ ] 인앱 채팅
+- [x] 인앱 채팅 — `chat/` 도메인: split 단위 채팅(WebSocket+STOMP `/ws`, `/topic/chats/{splitId}`), REST(`GET/POST /api/splits/{id}/chat/messages`, `POST .../read`, `GET .../unread`), STOMP CONNECT JWT 인증 + SUBSCRIBE 멤버십 인가(StompAuthChannelInterceptor), 새 메시지 FCM 푸시(ChatMessageCreatedEvent AFTER_COMMIT). V8 마이그레이션(chat_messages, chat_read_states)
 - [ ] PG 에스크로 연동
 
 ## S3 업로드 주의사항

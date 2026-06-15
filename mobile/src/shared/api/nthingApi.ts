@@ -3,6 +3,8 @@ import {
   type AuthResponse,
   type BlockedUsersResponse,
   type BlockResponse,
+  type ChatMessage,
+  type ChatUnreadResponse,
   type CreateReportRequest,
   type CreateSplitRequest,
   type DeviceResponse,
@@ -14,6 +16,7 @@ import {
   type RegisterDeviceRequest,
   type ReportBrokenRequest,
   type ReportResponse,
+  type SendMessageRequest,
   type Split,
   type TrustProfile,
   type UpdateMeRequest,
@@ -103,6 +106,19 @@ export const nthingApi = {
 
   getParticipatedSplits: (page = 0, size = 20) =>
     apiFetch<PageResponse<Split>>(`/splits/participated${toQuery({ page, size })}`),
+
+  // ── chat (Phase 2 인앱 채팅) — 멤버만. 실시간 수신은 STOMP, 전송/조회는 REST ──
+  getChatMessages: (splitId: number, before?: number, size = 30) =>
+    apiFetch<ChatMessage[]>(`/splits/${splitId}/chat/messages${toQuery({ before, size })}`),
+
+  sendChatMessage: (splitId: number, req: SendMessageRequest) =>
+    apiFetch<ChatMessage>(`/splits/${splitId}/chat/messages`, { method: 'POST', body: req }),
+
+  markChatRead: (splitId: number) =>
+    apiFetch<void>(`/splits/${splitId}/chat/read`, { method: 'POST' }),
+
+  getChatUnread: (splitId: number) =>
+    apiFetch<ChatUnreadResponse>(`/splits/${splitId}/chat/unread`),
 
   // ── uploads (Phase 1.4 시그니처만; 실제 PUT 업로드는 1.5) ──
   signUpload: (req: PresignRequest) =>

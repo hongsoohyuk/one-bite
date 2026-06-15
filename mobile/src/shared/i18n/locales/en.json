@@ -171,6 +171,16 @@
     "report": "Report",
     "block": "Block"
   },
+  "chat": {
+    "title": "Chat",
+    "open": "Open chat",
+    "send": "Send",
+    "empty": "No messages yet. Say hi first!",
+    "inputPlaceholder": "Type a message",
+    "loadError": "Couldn't load the conversation",
+    "connected": "Live",
+    "connecting": "Connecting…"
+  },
   "report": {
     "title": "Report",
     "subtitle": "Choose a reason",

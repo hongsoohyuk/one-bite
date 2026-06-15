@@ -402,6 +402,44 @@ Apple 소셜 로그인. 클라이언트에서 받은 Apple ID 토큰을 보내�
 
 ---
 
+## Chat API (반띵 단위 채팅, 인증 필요 · 멤버만)
+
+채팅방은 split 과 1:1. 멤버 = 주최자 + 활성 참여자(JOINED/COMPLETED). 비멤버는 모두 403.
+실시간 수신은 STOMP, 전송/조회/읽음은 REST.
+
+### GET /splits/{splitId}/chat/messages?before={id}&size=30
+메시지 히스토리(최신순). `before` = 더 과거 로딩용 커서(가진 가장 오래된 메시지 id).
+
+**Response: 200**
+```json
+[
+  { "id": 12, "splitId": 3, "senderId": 9, "senderNickname": "참여자",
+    "senderProfileImageUrl": null, "content": "몇 시에 만날까요?", "createdAt": "2026-06-15T09:00:00" }
+]
+```
+
+### POST /splits/{splitId}/chat/messages
+메시지 전송. 저장 후 `/topic/chats/{splitId}` 로 브로드캐스트 + 발신자 제외 멤버에게 FCM 푸시.
+
+**Request**
+```json
+{ "content": "내일 봬요" }
+```
+**Response: 201** — 생성된 메시지(위 객체 형태)
+
+### POST /splits/{splitId}/chat/read
+내 읽음 위치를 now 로 갱신. **Response: 204**
+
+### GET /splits/{splitId}/chat/unread
+내 안읽음 수(내가 보낸 건 제외). **Response: 200** `{ "count": 2 }`
+
+### WebSocket (STOMP)
+- 엔드포인트: `wss://api.nthing.app/ws` (dev: Vite proxy `/ws`)
+- CONNECT 헤더: `Authorization: Bearer <jwt>` (검증 실패 시 연결 거부)
+- 구독: `/topic/chats/{splitId}` (멤버 아니면 SUBSCRIBE 거부) → 새 메시지(JSON, 위 객체) 수신
+
+---
+
 ## 에러 응답 (공통)
 
 ```json
