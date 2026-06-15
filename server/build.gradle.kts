@@ -40,6 +40,7 @@ dependencies {
 	implementation(platform("software.amazon.awssdk:bom:2.27.21"))
 	implementation("software.amazon.awssdk:s3")
 	implementation("com.google.firebase:firebase-admin:9.4.3")
+	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.6")
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testImplementation("org.springframework.security:spring-security-test")
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
