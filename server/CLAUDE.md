@@ -172,12 +172,12 @@ SecurityConfig 매칭 순서 주의: `/splits/my`와 `/splits/participated`는 `
 - [x] **OAuth redirect relay** — `GET/POST /api/auth/callback/{provider}` → 커스텀 스킴(`nthing://auth/callback`) 리다이렉트
 - [x] **dev-login** — `DevAuthController` (실 OAuth 없이 토큰 발급, dev 한정)
 - [x] **Rate limiting** — `ratelimit/` 도메인: IP 기준 인메모리 토큰 버킷. `/api/auth` 하위는 엄격(기본 20/분), 그 외 기본 120/분. 초과 시 429 + Retry-After. Spring Security 보다 먼저 실행(HIGHEST_PRECEDENCE). nginx `X-Real-IP` 기반 IP 판별. `nthing.ratelimit.*` 로 튜닝(`enabled=false` 면 비활성)
+- [x] **Swagger/OpenAPI** — springdoc-openapi(`config/OpenApiConfig` JWT Bearer 스킴). dev: `/swagger-ui.html`, `/v3/api-docs`. **운영 프로필은 기본 비노출**(`springdoc.*.enabled=false`, `SPRINGDOC_ENABLED=true` 로 전환 가능)
 
 ### TODO
 
 **다음 (안정성)**
 - [ ] 테스트 코드 확충
-- [ ] Swagger/OpenAPI 문서 자동 생성
 
 **Phase 2**
 - [x] 푸시 알림 서버 (FCM) — notification 도메인: Device(token upsert/unregister), DeviceLocationQuery, NotificationService(4종 알림), AFTER_COMMIT+@Async 이벤트 리스너. FcmConfig 가 `FIREBASE_CREDENTIALS_BASE64`(우선)/`_PATH`(폴백) 지원. **남은 것은 prod `.env` 에 실제 자격증명 base64 주입(운영 작업)**
