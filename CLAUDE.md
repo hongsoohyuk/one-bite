@@ -154,7 +154,7 @@ npx cap sync && npx cap open android  # Android Studio
 - [ ] 푸시 알림 → Phase 2 로 이동
 
 ### Phase 2 - 신뢰와 편의성
-- [~] 푸시 알림 (Capacitor `@capacitor-firebase/messaging` + 서버 FCM 단일 채널) — 코드 완성. Firebase 프로젝트(`n-thing`) 생성 + config 배치 완료(2026-06-02): Android `google-services.json`, iOS `GoogleService-Info.plist`(Xcode 타겟 등록), 서버 service account(`server/secrets/`, gitignored). iOS APNs 인증 키(.p8) 발급 + Firebase Cloud Messaging 업로드 완료(2026-06-04). 남은 것: 서버 prod에 service account 마운트(`FIREBASE_CREDENTIALS_PATH`, 현재 docker-compose.prod.yml에 secrets 볼륨 미마운트 — base64 env 방식 필요)
+- [~] 푸시 알림 (Capacitor `@capacitor-firebase/messaging` + 서버 FCM 단일 채널) — 코드 완성. Firebase 프로젝트(`n-thing`) 생성 + config 배치 완료(2026-06-02): Android `google-services.json`, iOS `GoogleService-Info.plist`(Xcode 타겟 등록), 서버 service account(`server/secrets/`, gitignored). iOS APNs 인증 키(.p8) 발급 + Firebase Cloud Messaging 업로드 완료(2026-06-04). base64 env 방식 코드 완성: `FcmConfig` 가 `FIREBASE_CREDENTIALS_BASE64`(우선)/`FIREBASE_CREDENTIALS_PATH`(폴백) 지원 + `docker-compose.prod.yml` 가 `infra/.env`(`env_file`)로 자동 주입(미설정 시 `LoggingFcmSender` 폴백). 남은 것: prod `infra/.env`(`ONEBITE_ENV_B64`)에 service account base64 실값 주입(운영 작업)
 - [~] 위치 기반 트리거 알림 ("근처 N미터 내 새 반띵") — 코드 완성 (DeviceLocationQuery 전략 패턴)
 - [x] 인앱 채팅 (2026-06-15) — **반띵(split) 단위 그룹 채팅방**. 서버: WebSocket+STOMP(`/ws`, `/topic/chats/{splitId}`) 실시간 + REST(전송/조회/읽음/안읽음) + STOMP CONNECT JWT 인증·SUBSCRIBE 멤버십 인가 + 새 메시지 FCM 푸시(AFTER_COMMIT 디커플링). 멤버=주최자+활성 참여자. (V8 마이그레이션). 모바일: `@stomp/stompjs` 실시간 수신 + SplitDetail 채팅 버튼(안읽음 배지) + `/splits/:id/chat` 화면(4개 로케일). 명세 `docs/superpowers/specs/2026-06-15-chat-rooms-design.md`. 서버 93 + 모바일 226 테스트 green
 - [ ] PG 에스크로 연동 (안전거래)
