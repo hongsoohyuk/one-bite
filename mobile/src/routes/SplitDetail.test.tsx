@@ -26,6 +26,9 @@ vi.mock('../features/report/queries', () => ({
 vi.mock('../features/trust/TrustBadge', () => ({
   TrustBadge: () => null,
 }));
+vi.mock('../features/chat/queries', () => ({
+  useChatUnread: vi.fn(() => ({ data: undefined })),
+}));
 
 import {
   useSplit,
@@ -241,5 +244,29 @@ describe('SplitDetail', () => {
     useSplitMock.mockReturnValue({ isPending: false, isError: false, data: SPLIT });
     renderDetail();
     expect(screen.queryByRole('button', { name: '더보기' })).not.toBeInTheDocument();
+  });
+
+  it('MATCHED 멤버(참여자) → 채팅 열기 버튼 노출', () => {
+    useAuthStore.setState({ token: 'jwt', user: { id: 1, nickname: '나' }, isHydrated: true });
+    useSplitMock.mockReturnValue({
+      isPending: false,
+      isError: false,
+      data: {
+        ...SPLIT,
+        status: 'MATCHED',
+        participants: [
+          { userId: 1, nickname: '나', profileImageUrl: null, joinedAt: '2026-05-27T11:00:00' },
+        ],
+        currentParticipants: 2,
+      },
+    });
+    renderDetail();
+    expect(screen.getByRole('button', { name: '채팅 열기' })).toBeInTheDocument();
+  });
+
+  it('비멤버(참여자 없는 타인 글) → 채팅 버튼 없음', () => {
+    useSplitMock.mockReturnValue({ isPending: false, isError: false, data: SPLIT });
+    renderDetail();
+    expect(screen.queryByRole('button', { name: '채팅 열기' })).not.toBeInTheDocument();
   });
 });

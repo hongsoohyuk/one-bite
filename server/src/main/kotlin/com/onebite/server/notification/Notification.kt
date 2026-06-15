@@ -3,7 +3,7 @@ package com.onebite.server.notification
 import jakarta.persistence.*
 import java.time.LocalDateTime
 
-enum class NotificationType { NEARBY_NEW_SPLIT, SPLIT_JOINED, SPLIT_MATCHED, SPLIT_CANCELLED }
+enum class NotificationType { NEARBY_NEW_SPLIT, SPLIT_JOINED, SPLIT_MATCHED, SPLIT_CANCELLED, CHAT_MESSAGE }
 enum class NotificationStatus { SENT, FAILED }
 
 @Entity

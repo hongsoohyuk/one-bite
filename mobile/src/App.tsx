@@ -17,6 +17,7 @@ import { Home } from './routes/Home';
 import { Profile } from './routes/Profile';
 import { CreateSplit } from './routes/CreateSplit';
 import { SplitDetail } from './routes/SplitDetail';
+import { ChatRoom } from './routes/ChatRoom';
 import { SplitList } from './routes/SplitList';
 import { Catalog } from './routes/Catalog';
 import { Settings } from './routes/Settings';
@@ -87,6 +88,14 @@ function App() {
             element={
               <RequireAuth>
                 <SplitDetail />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/splits/:id/chat"
+            element={
+              <RequireAuth>
+                <ChatRoom />
               </RequireAuth>
             }
           />

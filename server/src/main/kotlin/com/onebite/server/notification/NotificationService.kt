@@ -1,5 +1,6 @@
 package com.onebite.server.notification
 
+import com.onebite.server.split.ParticipantOutcome
 import com.onebite.server.split.SplitParticipantRepository
 import com.onebite.server.split.SplitRepository
 import com.onebite.server.user.UserRepository
@@ -72,6 +73,28 @@ class NotificationService(
         val msg = PushMessage(NotificationType.SPLIT_CANCELLED, "반띵 취소",
             "${split.productName} 반띵이 취소됐어요", split.id)
         sendToUsers(participants, msg)
+    }
+
+    // 새 채팅 메시지 → 발신자 제외 활성 멤버(주최자+JOINED/COMPLETED 참여자)에게 푸시
+    @Transactional
+    fun notifyChatMessage(splitId: Long, senderId: Long, content: String) {
+        val split = splitRepository.findById(splitId).orElse(null) ?: return
+        val sender = userRepository.findById(senderId).orElse(null) ?: return
+        val memberIds = (listOf(split.author.id) +
+            splitParticipantRepository.findBySplitRequestId(splitId)
+                .filter { it.outcome == ParticipantOutcome.JOINED || it.outcome == ParticipantOutcome.COMPLETED }
+                .map { it.user.id })
+            .distinct()
+            .filter { it != senderId }
+        if (memberIds.isEmpty()) return
+        val preview = if (content.length > 50) content.take(50) + "…" else content
+        val msg = PushMessage(
+            NotificationType.CHAT_MESSAGE,
+            "${sender.nickname} · ${split.productName}",
+            preview,
+            split.id,
+        )
+        sendToUsers(memberIds, msg)
     }
 
     private fun sendToUsers(userIds: List<Long>, message: PushMessage) {

@@ -167,6 +167,34 @@ describe('nthingApi splits/uploads', () => {
     expect(mockFetch).toHaveBeenCalledWith('/splits/participated?page=2&size=10');
   });
 
+  it('getChatMessages 는 GET /splits/{id}/chat/messages (size 기본)', async () => {
+    await nthingApi.getChatMessages(3);
+    expect(mockFetch).toHaveBeenCalledWith('/splits/3/chat/messages?size=30');
+  });
+
+  it('getChatMessages 는 before 커서를 쿼리에 포함', async () => {
+    await nthingApi.getChatMessages(3, 100, 20);
+    expect(mockFetch).toHaveBeenCalledWith('/splits/3/chat/messages?before=100&size=20');
+  });
+
+  it('sendChatMessage 는 POST /splits/{id}/chat/messages (body)', async () => {
+    await nthingApi.sendChatMessage(3, { content: '안녕' });
+    expect(mockFetch).toHaveBeenCalledWith('/splits/3/chat/messages', {
+      method: 'POST',
+      body: { content: '안녕' },
+    });
+  });
+
+  it('markChatRead 는 POST /splits/{id}/chat/read', async () => {
+    await nthingApi.markChatRead(3);
+    expect(mockFetch).toHaveBeenCalledWith('/splits/3/chat/read', { method: 'POST' });
+  });
+
+  it('getChatUnread 는 GET /splits/{id}/chat/unread', async () => {
+    await nthingApi.getChatUnread(3);
+    expect(mockFetch).toHaveBeenCalledWith('/splits/3/chat/unread');
+  });
+
   it('signUpload 는 POST /uploads/sign (body)', async () => {
     await nthingApi.signUpload({ contentType: 'image/jpeg', size: 123 });
     expect(mockFetch).toHaveBeenCalledWith('/uploads/sign', {

@@ -156,7 +156,7 @@ npx cap sync && npx cap open android  # Android Studio
 ### Phase 2 - 신뢰와 편의성
 - [~] 푸시 알림 (Capacitor `@capacitor-firebase/messaging` + 서버 FCM 단일 채널) — 코드 완성. Firebase 프로젝트(`n-thing`) 생성 + config 배치 완료(2026-06-02): Android `google-services.json`, iOS `GoogleService-Info.plist`(Xcode 타겟 등록), 서버 service account(`server/secrets/`, gitignored). iOS APNs 인증 키(.p8) 발급 + Firebase Cloud Messaging 업로드 완료(2026-06-04). 남은 것: 서버 prod에 service account 마운트(`FIREBASE_CREDENTIALS_PATH`, 현재 docker-compose.prod.yml에 secrets 볼륨 미마운트 — base64 env 방식 필요)
 - [~] 위치 기반 트리거 알림 ("근처 N미터 내 새 반띵") — 코드 완성 (DeviceLocationQuery 전략 패턴)
-- [ ] 인앱 채팅
+- [x] 인앱 채팅 (2026-06-15) — **반띵(split) 단위 그룹 채팅방**. 서버: WebSocket+STOMP(`/ws`, `/topic/chats/{splitId}`) 실시간 + REST(전송/조회/읽음/안읽음) + STOMP CONNECT JWT 인증·SUBSCRIBE 멤버십 인가 + 새 메시지 FCM 푸시(AFTER_COMMIT 디커플링). 멤버=주최자+활성 참여자. (V8 마이그레이션). 모바일: `@stomp/stompjs` 실시간 수신 + SplitDetail 채팅 버튼(안읽음 배지) + `/splits/:id/chat` 화면(4개 로케일). 명세 `docs/superpowers/specs/2026-06-15-chat-rooms-design.md`. 서버 93 + 모바일 226 테스트 green
 - [ ] PG 에스크로 연동 (안전거래)
 - [x] 거래 완료 인증 (2026-06-07) — 서버 라이프사이클(`/complete` 양방 확인 → COMPLETED, `/report-broken` 노쇼/불이행, `/leave` 매칭후 이탈) + 공개 신뢰 프로필(`GET /users/{id}/trust`, 성사율·newcomer)는 trust-safety-server 에서 완성. 이번에 **모바일 연동 완료**: `nthingApi`(complete/reportBroken/leave/getTrustProfile) + 쿼리 훅 + SplitDetail 라이프사이클 액션바(거래완료/안나왔어요/참여취소) + `NoShowSheet`(상대·사유 선택) + `TrustBadge`(4개 로케일 i18n 재계산). 206 테스트 green
 - [x] 신고/차단 — 서버 report 도메인(신고+차단) + 모바일 `features/report`(ReportSheet, 차단 메뉴)
